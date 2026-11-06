@@ -931,7 +931,7 @@ export function createWorld(root) {
   });
   const forestTrees = treeLocations.map((tree, index) => ({ ...tree, index, available: true, regrowAt: 0, reservedBy: null }));
   const stumps = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.2, 0.26, 0.34, 8), palette.trunk, forestTrees.length);
-  stumps.castShadow = true; stumps.receiveShadow = true;
+  stumps.castShadow = true; stumps.receiveShadow = true; stumps.frustumCulled = false;
   const zeroMatrix = new THREE.Matrix4().makeScale(0, 0, 0);
   for (let i = 0; i < forestTrees.length; i++) stumps.setMatrixAt(i, zeroMatrix);
   stumps.count = forestTrees.length;
