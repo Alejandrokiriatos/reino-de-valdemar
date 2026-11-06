@@ -640,6 +640,7 @@ export function createWorld(root) {
   const buildings = [];
   const roads = [];
   const roadPaths = [];
+  const coreRoadPaths = [];
   const bridgeRoadPaths = new Set();
   const buildingRoads = new Map();
   const villagers = [];
@@ -787,6 +788,7 @@ export function createWorld(root) {
     road.material = roadMat;
     roads.push(road);
     roadPaths.push(points);
+    coreRoadPaths.push(points);
   });
 
   // A timber bridge gives both banks a connected pedestrian and cart route.
@@ -797,6 +799,7 @@ export function createWorld(root) {
   westRampMesh.material = roadMat;
   roads.push(westRampMesh);
   roadPaths.push(westRamp);
+  coreRoadPaths.push(westRamp);
 
   const bridgeOffset = (x, z) => {
     const riverX = 18 + Math.sin(z * 0.042) * 3.8;
@@ -808,6 +811,7 @@ export function createWorld(root) {
   bridgeMesh.receiveShadow = true;
   roads.push(bridgeMesh);
   roadPaths.push(bridgeRoute);
+  coreRoadPaths.push(bridgeRoute);
   bridgeRoadPaths.add(bridgeRoute);
 
   const bridgeDetails = new THREE.Group();
@@ -837,6 +841,7 @@ export function createWorld(root) {
   eastRoadMesh.material = roadMat;
   roads.push(eastRoadMesh);
   roadPaths.push(eastRoad);
+  coreRoadPaths.push(eastRoad);
 
   function emptyStockyard() {
     stockyard.traverse((child) => {
@@ -1088,7 +1093,7 @@ export function createWorld(root) {
     const bankSide = Math.sign(entranceX - entranceRiverX);
     let best = null;
 
-    roadPaths.forEach((path) => {
+    coreRoadPaths.forEach((path) => {
       for (let i = 0; i < path.length - 1; i++) {
         const [ax, az] = path[i];
         const [bx, bz] = path[i + 1];
