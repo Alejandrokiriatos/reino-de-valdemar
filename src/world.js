@@ -610,6 +610,8 @@ export function createWorld(root) {
   const water = makeRiver(scene);
   const buildings = [];
   const roads = [];
+  const roadPaths = [];
+  const buildingRoads = new Map();
   const villagers = [];
   const deer = [];
   const stockyard = new THREE.Group();
@@ -743,11 +745,19 @@ export function createWorld(root) {
     for (let i = 0; i < 2; i++) deer.push(makeDeer(scene, herdIndex * 2 + i, x, z, palette));
   });
 
-  makeRoad(scene, [[-8, -16], [-6, -12], [-3, -10], [0, -8], [4, -5]], 2.7);
-  makeRoad(scene, [[-3, -9], [-6, -5], [-5, 1], [-4, 7]], 2.25);
-  makeRoad(scene, [[-7, -13], [-11, -11], [-15, -8], [-17, -3], [-19, 5]], 2.35);
-  makeRoad(scene, [[-12, -5], [-18, 0], [-24, 6], [-30, 12], [-34, 16]], 1.9);
   const roadMat = material(0x756044, 1);
+  const villageRoads = [
+    { points: [[-8, -16], [-6, -12], [-3, -10], [0, -8], [4, -5]], width: 2.7 },
+    { points: [[-3, -9], [-6, -5], [-5, 1], [-4, 7]], width: 2.25 },
+    { points: [[-7, -13], [-11, -11], [-15, -8], [-17, -3], [-19, 5]], width: 2.35 },
+    { points: [[-12, -5], [-18, 0], [-24, 6], [-30, 12], [-34, 16]], width: 1.9 }
+  ];
+  villageRoads.forEach(({ points, width }) => {
+    const road = makeRoad(scene, points, width);
+    road.material = roadMat;
+    roads.push(road);
+    roadPaths.push(points);
+  });
 
   function emptyStockyard() {
     stockyard.traverse((child) => {
@@ -808,6 +818,7 @@ export function createWorld(root) {
     group.name = data.kind + '-' + data.id;
     scene.add(group);
     buildings.push(group);
+    connectBuildingToRoad(data);
     return group;
   }
 
@@ -817,6 +828,16 @@ export function createWorld(root) {
     scene.remove(group);
     const wasStorehouse = group.userData.buildingData?.kind === 'storehouse';
     group.traverse((child) => child.geometry?.dispose?.());
+    const linkedRoad = buildingRoads.get(group.userData.buildingData?.id);
+    if (linkedRoad) {
+      scene.remove(linkedRoad.road);
+      linkedRoad.road.geometry.dispose();
+      const roadIndex = roads.indexOf(linkedRoad.road);
+      if (roadIndex >= 0) roads.splice(roadIndex, 1);
+      const pathIndex = roadPaths.indexOf(linkedRoad.route);
+      if (pathIndex >= 0) roadPaths.splice(pathIndex, 1);
+      buildingRoads.delete(group.userData.buildingData.id);
+    }
     if (wasStorehouse) {
       const replacement = buildings.find((item) => item.userData.buildingData?.kind === 'storehouse');
       if (replacement) positionStockyard(replacement.userData.buildingData);
@@ -837,7 +858,46 @@ export function createWorld(root) {
     const road = makeRoad(scene, points, width);
     road.material = roadMat;
     roads.push(road);
+    roadPaths.push(points);
     return road;
+  }
+
+  function connectBuildingToRoad(data) {
+    if (data.permanent || data.kind === 'fishery' || roadPaths.length === 0) return;
+    const angle = Number(data.rotation) || 0;
+    const entranceX = data.x + Math.sin(angle) * 3.1;
+    const entranceZ = data.z + Math.cos(angle) * 3.1;
+    const entranceRiverX = 18 + Math.sin(entranceZ * 0.042) * 3.8;
+    const bankSide = Math.sign(entranceX - entranceRiverX);
+    let best = null;
+
+    roadPaths.forEach((path) => {
+      for (let i = 0; i < path.length - 1; i++) {
+        const [ax, az] = path[i];
+        const [bx, bz] = path[i + 1];
+        const vx = bx - ax;
+        const vz = bz - az;
+        const lengthSq = vx * vx + vz * vz || 1;
+        const t = THREE.MathUtils.clamp(((entranceX - ax) * vx + (entranceZ - az) * vz) / lengthSq, 0, 1);
+        const px = ax + vx * t;
+        const pz = az + vz * t;
+        const riverAtPoint = 18 + Math.sin(pz * 0.042) * 3.8;
+        if (bankSide !== 0 && Math.sign(px - riverAtPoint) !== bankSide) continue;
+        const distanceSq = (entranceX - px) ** 2 + (entranceZ - pz) ** 2;
+        if (!best || distanceSq < best.distanceSq) best = { x: px, z: pz, distanceSq };
+      }
+    });
+
+    // Avoid drawing implausibly long roads across open country or across the river.
+    if (!best || best.distanceSq > 34 * 34) return;
+    const distance = Math.sqrt(best.distanceSq) || 1;
+    const bend = Math.min(3.2, distance * 0.13);
+    const midX = (best.x + entranceX) * 0.5 - ((entranceZ - best.z) / distance) * bend;
+    const midZ = (best.z + entranceZ) * 0.5 + ((entranceX - best.x) / distance) * bend;
+    const route = [[best.x, best.z], [midX, midZ], [entranceX, entranceZ]];
+    const road = addRoadPath(route, 1.35);
+    road.userData.connectedBuildingId = data.id;
+    buildingRoads.set(data.id, { road, route });
   }
 
   function setPopulation(count, resetPositions = false) {
