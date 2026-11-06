@@ -1,6 +1,6 @@
-# Reino de Valdemar — 1.6.0
+# Reino de Valdemar — 1.7.0
 
-Juego de estrategia y construcción medieval 3D creado desde cero con Three.js, Vite y Electron. Esta versión se centra en que el asentamiento empiece a funcionar como un pequeño ecosistema: los trabajadores recorren la aldea, llevan mercancías al almacén y la economía depende también de la fauna y los peces del valle.
+Juego de estrategia y construcción medieval 3D creado desde cero con Three.js, Vite y Electron. La aldea ya cuenta con una primera red logística: trabajadores que recorren caminos, llevan recursos en carretas, cruzan el río por un puente y descargan mercancías en un almacén con capacidad limitada.
 
 ## Ejecutar en Windows
 
@@ -31,24 +31,27 @@ Para generar un ejecutable portable en Windows:
 
 ## Sistemas incluidos
 
-- Mundo 3D con terreno de coloración procedural, colinas, río curvo, caminos, hierba instanciada, bosques y rocas.
-- Optimización de vegetación mediante instancias para reducir llamadas de dibujo.
-- Ciclo de luz diurna/nocturna, niebla, sombras y cambios de color por estación.
-- Hogares, granjas, aserradero, cantera, torre, mercado, pozo, almacén y cabaña de cazadores.
-- Puesto de pesca construible en la orilla, con muelle y redes.
-- Aldeanos animados que van a sus puestos, realizan tareas, cargan mercancías y las llevan físicamente al patio del almacén.
-- Acopios visibles de comida, madera, piedra y oro entregados por los trabajadores.
-- Fauna silvestre con pequeños grupos de ciervos; la caza puede reducir la población animal y esta se recupera con el tiempo.
-- Reservas de peces que se agotan por la pesca intensiva y se regeneran cuando se deja descansar el río.
-- Economía diaria, estaciones, consumo de comida y leña, vivienda, crecimiento, ánimo y asignación de trabajadores.
-- Inspección de edificios, contratación, despido, demolición y devolución parcial de materiales.
-- Colocación con validación de costes, espacio y acceso al río cuando corresponde.
-- Guardado local, migración de partidas anteriores y restauración de la cámara.
+- Mundo 3D procedural con colinas, terreno con variación de color, río curvo, hierba, bosque, matorrales y rocas.
+- Vegetación instanciada para reducir llamadas de dibujo y mejorar el rendimiento.
+- Ciclo día/noche, niebla, sombras, cambios estacionales y fogata animada con humo.
+- Puente de madera transitable que conecta ambas riberas y una red de caminos de aldea.
+- Conexiones de camino automáticas para nuevos edificios; los ramales se eliminan al demoler su edificio.
+- Los aldeanos encuentran recorridos por la red de caminos. Las carretas avanzan mejor por caminos y pierden velocidad fuera de ellos.
+- Aldeanos animados que trabajan, cargan comida, troncos, piedra u oro y los llevan físicamente al almacén en carretas con ruedas animadas.
+- Patio de almacén con montones visibles de mercancías; los montones y su cantidad visual se conservan al guardar y continuar.
+- Capacidad de almacén compartida por todos los recursos: al llenarse, parte de la producción no se puede almacenar. Los almacenes adicionales amplían la capacidad.
+- Casas, granjas, aserradero, cantera, torre, mercado, pozo, almacén, cabaña de cazadores y puesto de pesca.
+- Ciervos en pequeñas manadas; la caza reduce la fauna y esta se recupera si se deja descansar.
+- Pesca junto al río; las capturas reducen las reservas de peces, que se regeneran con el tiempo.
+- Economía diaria, producción por trabajadores, consumo de alimentos y leña, vivienda, población, ánimo y estaciones.
+- Inspección de edificios, asignación y retirada de trabajadores, demolición y devolución parcial de materiales.
+- Colocación con comprobación de costes, espacio y acceso al río.
+- Guardado local, migración de partidas anteriores, restauración de cámara y guardado automático.
 
 ## Validación
 
-Ejecuta npm run check para comprobar la sintaxis de los módulos y ejecutar las pruebas de economía, construcción, trabajadores, estaciones, caza, pesca y migración de partidas.
+Ejecuta `npm run check` para comprobar la sintaxis de los módulos y ejecutar las pruebas de economía, construcción, trabajadores, estaciones, caza, pesca, almacenamiento y migración de partidas.
 
 ## Estado del proyecto
 
-Es una versión de desarrollo, no un producto terminado. Los personajes y edificios se construyen con geometría procedural. Todavía faltan navegación avanzada para evitar obstáculos, transporte con carretas, cadena de producción de varios pasos, comercio con caravanas, combate, sonido, modelos artísticos definitivos y pruebas de equilibrio más amplias.
+Es una versión de desarrollo, no un producto terminado. Los edificios, personajes, fauna y carretas utilizan geometría procedural, no modelos artísticos externos. Todavía faltan combate, comercio con caravanas, cadenas de producción más profundas, navegación con obstáculos y multirruta avanzada, sonidos, efectos de clima y una pasada de arte y balance.
