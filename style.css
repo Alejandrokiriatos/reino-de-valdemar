@@ -57,9 +57,10 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 .resource b { display: block; margin-top: 2px; font: 600 15px Cinzel, Georgia, serif; color: #f0e6d1; }
 .people-resource { border-right: 1px solid rgba(194, 164, 105, .22); }
 .people-resource i { padding: 0 3px; font-style: normal; color: #88816e; }
-.realm-date { min-width: 95px; text-align: right; color: #d9c28f; }
+.realm-date { min-width: 116px; text-align: right; color: #d9c28f; }
 .realm-date span { display: block; font: 600 13px Cinzel, Georgia, serif; }
-.realm-date b { display: block; margin-top: 4px; font: 9px Inter, sans-serif; letter-spacing: .14em; color: #aaa48f; }
+.realm-date i { display: block; margin-top: 3px; color: #bcc5b2; font: 9px Inter, sans-serif; font-style: normal; letter-spacing: .025em; }
+.realm-date b { display: block; margin-top: 3px; font: 8px Inter, sans-serif; letter-spacing: .14em; color: #aaa48f; }
 .icon-button { min-width: 42px; height: 42px; font-size: 19px; border-color: #92784b; }
 
 .side-panel {
@@ -199,8 +200,9 @@ button:disabled { opacity: .4; cursor: not-allowed; }
   .resource small { display: none; }
   .resource b { font-size: 11px; }
   .resource:nth-child(4) { display: none; }
-  .realm-date { min-width: 58px; }
+  .realm-date { min-width: 76px; }
   .realm-date span { font-size: 10px; }
+  .realm-date i { font-size: 7px; }
   .realm-date b { font-size: 7px; }
   .icon-button { min-width: 31px; height: 34px; padding: 4px; }
   .side-panel { top: 82px; bottom: 61px; width: min(225px, 64vw); left: 7px; padding: 11px 9px; }
