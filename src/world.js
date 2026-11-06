@@ -1256,6 +1256,7 @@ export function createWorld(root) {
           if (p.workTimer <= 0) {
             p.state = 'toStore';
             assignTravelRoute(person, p.storageTarget);
+            p.cart.visible = true;
             p.cargo.visible = true;
             p.cargoParts.sack.visible = p.cargoType === 'food';
             p.cargoParts.stone.visible = p.cargoType === 'stone';
