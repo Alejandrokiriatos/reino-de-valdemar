@@ -10,7 +10,8 @@ test('a new settlement starts with consistent population and housing', () => {
   assert.equal(state.population, 12);
   assert.equal(housingCapacity(state), 12);
   assert.equal(freeWorkers(state), 9);
-  assert.equal(state.buildings.length, 5);
+  assert.equal(state.buildings.length, 6);
+  assert.ok(state.buildings.some((building) => building.kind === 'storehouse' && building.permanent));
 });
 
 test('placement checks space and charges resources only on success', () => {
@@ -48,7 +49,7 @@ test('winter changes crop output and consumes heating wood', () => {
 test('wells provide a small daily morale benefit', () => {
   const withoutWell = newGame();
   const withWell = newGame();
-  withWell.buildings.push({ id: 6, kind: 'well', x: 32, z: 32, workers: 0 });
+  withWell.buildings.push({ id: 7, kind: 'well', x: 32, z: 32, workers: 0 });
   advanceDay(withoutWell);
   advanceDay(withWell);
   assert.ok(withWell.morale > withoutWell.morale);
