@@ -415,15 +415,27 @@ export function createWorld(root) {
   fill.position.set(26, 20, -30);
   scene.add(fill);
 
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, 120, 120), material(0x6c8050, 1));
+  const groundGeometry = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, 120, 120);
+  const ground = new THREE.Mesh(
+    groundGeometry,
+    new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, vertexColors: true })
+  );
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
   const positions = ground.geometry.attributes.position;
+  const terrainColors = [];
   for (let i = 0; i < positions.count; i++) {
     const x = positions.getX(i);
     const z = -positions.getY(i);
-    positions.setZ(i, terrainHeight(x, z));
+    const height = terrainHeight(x, z);
+    positions.setZ(i, height);
+    const broad = Math.sin(x * 0.075 + z * 0.032) * 0.055;
+    const fine = Math.sin(x * 0.31) * Math.cos(z * 0.27) * 0.035;
+    const bank = Math.exp(-Math.pow((x - (18 + Math.sin(z * 0.042) * 3.8)) / 8.5, 2));
+    const shade = 0.91 + broad + fine - bank * 0.06 + height * 0.045;
+    terrainColors.push(0.36 * shade, 0.47 * shade, 0.27 * shade);
   }
+  ground.geometry.setAttribute('color', new THREE.Float32BufferAttribute(terrainColors, 3));
   positions.needsUpdate = true;
   ground.geometry.computeVertexNormals();
   ground.name = 'terrain';
@@ -444,6 +456,29 @@ export function createWorld(root) {
   ghost.renderOrder = 5;
   scene.add(ghost);
 
+  const grassGeometry = new THREE.ConeGeometry(0.065, 0.42, 4);
+  const grassMaterial = material(0x85964f, 1);
+  const grass = new THREE.InstancedMesh(grassGeometry, grassMaterial, 1750);
+  const grassDummy = new THREE.Object3D();
+  let grassIndex = 0;
+  for (let i = 0; i < 1750; i++) {
+    const x = (Math.random() - 0.5) * 165;
+    const z = (Math.random() - 0.5) * 165;
+    const riverX = 18 + Math.sin(z * 0.042) * 3.8;
+    if ((Math.abs(x) < 18 && Math.abs(z) < 18) || Math.abs(x - riverX) < 8.5) continue;
+    grassDummy.position.set(x, terrainHeight(x, z) + 0.16, z);
+    grassDummy.rotation.y = Math.random() * Math.PI;
+    const scale = 0.55 + Math.random() * 0.9;
+    grassDummy.scale.set(scale, scale, scale);
+    grassDummy.updateMatrix();
+    grass.setMatrixAt(grassIndex++, grassDummy.matrix);
+  }
+  grass.count = grassIndex;
+  grass.instanceMatrix.needsUpdate = true;
+  grass.castShadow = false;
+  grass.receiveShadow = true;
+  scene.add(grass);
+
   for (let i = 0; i < 260; i++) {
     const x = (Math.random() - 0.5) * 165;
     const z = (Math.random() - 0.5) * 165;
@@ -463,13 +498,20 @@ export function createWorld(root) {
     makeRock(scene, x, z, palette.stone, 0.3 + Math.random() * 0.7);
   }
 
-  makeRoad(scene, [[-8, -5], [-4, -1], [-2, 4], [0, 9]], 2.6);
-  makeRoad(scene, [[-4, 4], [3, 3], [8, 1], [10, -4]], 2.1);
-  makeRoad(scene, [[-8, -5], [-11, -1], [-12, 5]], 2.1);
+  makeRoad(scene, [[-8, -16], [-6, -12], [-3, -10], [0, -8], [4, -5]], 2.7);
+  makeRoad(scene, [[-3, -9], [-6, -5], [-5, 1], [-4, 7]], 2.25);
+  makeRoad(scene, [[-7, -13], [-11, -11], [-15, -8], [-17, -3], [-19, 5]], 2.35);
   const roadMat = material(0x756044, 1);
 
-  function positionStockyard(data) {
+  function emptyStockyard() {
+    stockyard.traverse((child) => {
+      if (child !== stockyard) child.geometry?.dispose?.();
+    });
     stockyard.clear();
+  }
+
+  function positionStockyard(data) {
+    emptyStockyard();
     stockyard.position.set(data.x + 5.1, terrainHeight(data.x + 5.1, data.z + 2.5), data.z + 2.5);
     for (const key of Object.keys(deliveryCounts)) deliveryCounts[key] = 0;
     addBox(stockyard, 0, 0.08, 0, 6.8, 0.16, 5.8, material(0x786143), false);
@@ -527,12 +569,21 @@ export function createWorld(root) {
     const index = buildings.indexOf(group);
     if (index >= 0) buildings.splice(index, 1);
     scene.remove(group);
+    const wasStorehouse = group.userData.buildingData?.kind === 'storehouse';
     group.traverse((child) => child.geometry?.dispose?.());
+    if (wasStorehouse) {
+      const replacement = buildings.find((item) => item.userData.buildingData?.kind === 'storehouse');
+      if (replacement) positionStockyard(replacement.userData.buildingData);
+      else {
+        emptyStockyard();
+        for (const key of Object.keys(deliveryCounts)) deliveryCounts[key] = 0;
+      }
+    }
   }
 
   function clearBuildings() {
     [...buildings].forEach(removeBuilding);
-    stockyard.clear();
+    emptyStockyard();
     for (const key of Object.keys(deliveryCounts)) deliveryCounts[key] = 0;
   }
 
