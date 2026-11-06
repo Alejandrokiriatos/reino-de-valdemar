@@ -8,7 +8,8 @@ export const BUILDINGS = {
   well:    { name: 'Pozo', cost: { wood: 25, stone: 25 }, slots: 0, housing: 0, size: 3.8 },
   storehouse: { name: 'Almacén', cost: { wood: 45, stone: 15 }, slots: 0, housing: 0, size: 8.2, storage: true },
   hunter: { name: 'Cabaña de cazadores', cost: { wood: 48, stone: 8 }, slots: 2, housing: 0, size: 6.8 },
-  fishery: { name: 'Puesto de pesca', cost: { wood: 55, stone: 8 }, slots: 2, housing: 0, size: 6.8 }
+  fishery: { name: 'Puesto de pesca', cost: { wood: 55, stone: 8 }, slots: 2, housing: 0, size: 6.8 },
+  stable: { name: 'Establo y corral', cost: { wood: 65, stone: 25 }, slots: 2, housing: 0, size: 8.8, livestockCapacity: 4 }
 };
 
 export const SEASONS = ['Primavera', 'Verano', 'Otoño', 'Invierno'];
@@ -26,17 +27,20 @@ export function newGame() {
     morale: 78,
     wildlife: 100,
     fishStock: 100,
+    livestock: 2,
+    manure: 16,
     weather: weatherForDay(1),
     buildings: [
       { id: 1, kind: 'tower', x: -8, z: -16, workers: 0, permanent: true, rotation: 0 },
       { id: 2, kind: 'house', x: 0, z: -8, workers: 0, permanent: true, rotation: 0.08 },
       { id: 3, kind: 'house', x: 7, z: -4, workers: 0, permanent: true, rotation: -0.12 },
-      { id: 4, kind: 'farm', x: -4, z: 7, workers: 2, permanent: true, rotation: -0.08 },
+      { id: 4, kind: 'farm', x: -4, z: 7, workers: 2, permanent: true, rotation: -0.08, fertility: 100 },
       { id: 5, kind: 'sawmill', x: -19, z: 5, workers: 1, permanent: true, rotation: 0.2 },
       { id: 6, kind: 'storehouse', x: -17, z: -8, workers: 0, permanent: true, rotation: 0 },
-      { id: 7, kind: 'hunter', x: -34, z: 16, workers: 1, permanent: true, rotation: 0.18 }
+      { id: 7, kind: 'hunter', x: -34, z: 16, workers: 1, permanent: true, rotation: 0.18 },
+      { id: 8, kind: 'stable', x: -29, z: -14, workers: 1, permanent: true, rotation: 0.12 }
     ],
-    nextBuildingId: 8,
+    nextBuildingId: 9,
     notices: ['La aldea de Valdemar despierta. Cuida sus reservas antes de que llegue el invierno.']
   };
 }
@@ -54,7 +58,12 @@ export function storedResources(state) {
   return Math.max(0, Number(state.food) || 0)
     + Math.max(0, Number(state.wood) || 0)
     + Math.max(0, Number(state.stone) || 0)
-    + Math.max(0, Number(state.gold) || 0);
+    + Math.max(0, Number(state.gold) || 0)
+    + Math.max(0, Number(state.manure) || 0);
+}
+
+export function livestockCapacity(state) {
+  return state.buildings.reduce((total, building) => total + (BUILDINGS[building.kind]?.livestockCapacity || 0), 0);
 }
 
 export function assignedWorkers(state) {
@@ -143,6 +152,33 @@ export function placeBuilding(state, kind, x, z) {
   return { ok: true, building, message: BUILDINGS[kind].name + ' construido.' };
 }
 
+export function buyLivestock(state, amount = 1) {
+  const quantity = Math.max(1, Math.floor(Number(amount) || 1));
+  const capacity = livestockCapacity(state);
+  if (capacity <= 0) return { ok: false, message: 'Primero necesitas construir un establo.' };
+  if (state.livestock + quantity > capacity) return { ok: false, message: 'No queda espacio en los corrales.' };
+  const cost = quantity * 8;
+  if (state.gold < cost) return { ok: false, message: 'No tienes oro suficiente para comprar el ganado.' };
+  state.gold -= cost;
+  state.livestock += quantity;
+  state.notices.unshift('Llegan ' + quantity + ' cabeza(s) de ganado a los corrales.');
+  state.notices = state.notices.slice(0, 8);
+  return { ok: true, message: 'Ganado adquirido: ' + state.livestock + ' / ' + capacity + '.' };
+}
+
+export function fertilizeFarm(state, buildingId) {
+  const farm = state.buildings.find((building) => building.id === buildingId && building.kind === 'farm');
+  if (!farm) return { ok: false, message: 'Selecciona una granja para abonarla.' };
+  const fertility = Math.max(0, Math.min(100, Number(farm.fertility ?? 100)));
+  if (fertility >= 99.5) return { ok: false, message: 'La tierra todavía conserva suficiente fertilidad.' };
+  if (state.manure < 8) return { ok: false, message: 'Necesitas 8 unidades de abono para fertilizar el campo.' };
+  state.manure -= 8;
+  farm.fertility = Math.min(100, fertility + 28);
+  state.notices.unshift('Se abonó el campo. La fertilidad del suelo ha mejorado.');
+  state.notices = state.notices.slice(0, 8);
+  return { ok: true, message: 'Campo abonado: fertilidad al ' + Math.round(farm.fertility) + '%.' };
+}
+
 export function changeWorkers(state, buildingId, change) {
   const building = state.buildings.find((item) => item.id === buildingId);
   if (!building) return { ok: false, message: 'No se encontró la construcción.' };
@@ -161,6 +197,9 @@ export function demolishBuilding(state, buildingId) {
   if (building.permanent) return { ok: false, message: 'No puedes demoler los edificios fundadores de la aldea.' };
   if (building.kind === 'storehouse' && state.buildings.filter((item) => item.kind === 'storehouse').length === 1) {
     return { ok: false, message: 'La aldea necesita al menos un almacén para organizar sus mercancías.' };
+  }
+  if (building.kind === 'stable' && state.buildings.filter((item) => item.kind === 'stable').length === 1 && state.livestock > 0) {
+    return { ok: false, message: 'No puedes retirar el último establo mientras quede ganado en la aldea.' };
   }
   state.buildings.splice(index, 1);
   state.wood += Math.floor((BUILDINGS[building.kind]?.cost.wood || 0) * 0.35);
@@ -191,7 +230,12 @@ export function advanceDay(state) {
   let fishingWorkers = 0;
   for (const building of state.buildings) {
     const workers = Math.max(0, Number(building.workers) || 0);
-    if (building.kind === 'farm') foodProduced += workers * 2.55 * growingFactor;
+    if (building.kind === 'farm') {
+      const fertility = Math.max(0, Math.min(100, Number(building.fertility ?? 100)));
+      const soilFactor = 0.55 + 0.45 * (fertility / 100);
+      foodProduced += workers * 2.55 * growingFactor * soilFactor;
+      building.fertility = Math.max(0, fertility - (0.08 + workers * 0.11));
+    }
     if (building.kind === 'sawmill') woodProduced += workers * 1.65;
     if (building.kind === 'quarry') stoneProduced += workers * 1.1;
     if (building.kind === 'market') goldProduced += workers * 1.25;
@@ -209,11 +253,26 @@ export function advanceDay(state) {
   foodProduced += fishCaught;
   state.fishStock = Math.min(100, Math.max(0, state.fishStock + fishRecovery - fishingWorkers * 1.15));
 
+  const stableWorkers = state.buildings.filter((building) => building.kind === 'stable')
+    .reduce((total, building) => total + Math.max(0, Number(building.workers) || 0), 0);
+  const livestockCapacityNow = livestockCapacity(state);
+  state.livestock = Math.max(0, Math.min(livestockCapacityNow, Math.floor(Number(state.livestock) || 0)));
+  const livestockFed = state.livestock === 0 || state.food > state.population * 0.2 + state.livestock * 0.1;
+  const dairyProduced = livestockFed ? state.livestock * (0.24 + Math.min(0.16, stableWorkers * 0.08)) * seasonFactor : 0;
+  foodProduced += dairyProduced;
+  const manureProduced = livestockFed ? state.livestock * (stableWorkers > 0 ? 0.58 : 0.3) : 0;
+
   const winter = season === 'Invierno';
   const foodConsumed = state.population * (winter ? 0.22 : 0.19);
+  const animalFeed = state.livestock > 0 ? state.livestock * 0.1 : 0;
+  const totalFoodConsumed = foodConsumed + animalFeed;
   const woodConsumed = winter ? state.population * (weather === 'Nieve' ? 0.16 : 0.12) : 0;
-  state.food = Math.max(0, state.food - foodConsumed);
+  state.food = Math.max(0, state.food - totalFoodConsumed);
   state.wood = Math.max(0, state.wood - woodConsumed);
+  if (!livestockFed && state.day % 3 === 0 && state.livestock > 0) {
+    state.livestock -= 1;
+    state.notices.unshift('Falta de forraje: una res no ha sobrevivido.');
+  }
 
   // Storage is a shared limit: new goods cannot appear in the village if the
   // storehouse has no room, matching the visible stockpile/hauling system.
@@ -229,6 +288,7 @@ export function advanceDay(state) {
   const woodStored = storeGoods('wood', woodProduced);
   const stoneStored = storeGoods('stone', stoneProduced);
   const goldStored = storeGoods('gold', goldProduced);
+  const manureStored = storeGoods('manure', manureProduced);
   if (winter && state.wood <= 0) state.morale = Math.max(0, state.morale - 2);
 
   if (state.food <= 0) {
@@ -256,6 +316,11 @@ export function advanceDay(state) {
     remainingWorkers -= building.workers;
   }
 
+  if (state.day % 12 === 0 && livestockFed && state.livestock >= 2 && stableWorkers > 0 && state.livestock < livestockCapacityNow && state.food > state.population * 2.5) {
+    state.livestock += 1;
+    state.food = Math.max(0, state.food - 2.5);
+    state.notices.unshift('Ha nacido una cría en los corrales. El ganado crece.');
+  }
   if (weather !== previousWeather) {
     state.notices.unshift('El tiempo cambia: ' + weatherDescription(weather) + '.');
   }
@@ -272,9 +337,11 @@ export function advanceDay(state) {
   return {
     season, weather, previousWeather, cropWeatherFactor,
     foodProduced, huntedFood, huntingWorkers, wildlife: state.wildlife,
+    dairyProduced, manureProduced, manureStored, livestock: state.livestock,
+    livestockCapacity: livestockCapacityNow, livestockFed, farmFertility: state.buildings.filter((building) => building.kind === 'farm').map((farm) => farm.fertility),
     fishCaught, fishingWorkers, fishStock: state.fishStock,
-    foodConsumed, woodProduced, woodConsumed, stoneProduced, goldProduced,
-    foodStored, woodStored, stoneStored, goldStored, storageCapacity: capacity
+    foodConsumed, animalFeed, totalFoodConsumed, woodProduced, woodConsumed, stoneProduced, goldProduced,
+    foodStored, woodStored, stoneStored, goldStored, manureStored, storageCapacity: capacity
   };
 }
 
@@ -306,6 +373,8 @@ export function loadGame() {
       morale: Math.min(100, Math.max(0, Number(saved.morale) || 70)),
       wildlife: Math.min(100, Math.max(0, Number(saved.wildlife ?? 100))),
       fishStock: Math.min(100, Math.max(0, Number(saved.fishStock ?? 100))),
+      livestock: Math.max(0, Math.floor(Number(saved.livestock ?? 2))),
+      manure: Math.max(0, Number(saved.manure ?? 16)),
       weather: saved.weather || weatherForDay(Math.max(1, Number(saved.day) || 1)),
       notices: Array.isArray(saved.notices) ? saved.notices.slice(0, 8) : [],
       buildings: saved.buildings.filter((b) => b && BUILDINGS[b.kind]).map((b, index) => ({
@@ -315,7 +384,8 @@ export function loadGame() {
         z: Number(b.z) || 0,
         workers: Math.max(0, Math.min(BUILDINGS[b.kind].slots, Number(b.workers) || 0)),
         permanent: Boolean(b.permanent ?? index < 4),
-        rotation: Number(b.rotation) || 0
+        rotation: Number(b.rotation) || 0,
+        fertility: b.kind === 'farm' ? Math.max(0, Math.min(100, Number(b.fertility ?? 100))) : undefined
       })),
       nextBuildingId: Math.max(Number(saved.nextBuildingId) || 1, saved.buildings.length + 1, ...saved.buildings.map((b) => (Number(b?.id) || 0) + 1))
     };
@@ -328,6 +398,13 @@ export function loadGame() {
         kind: 'storehouse', x: -17, z: -8, workers: 0, permanent: true, rotation: 0
       });
     }
+    if (!state.buildings.some((b) => b.kind === 'stable')) {
+      state.buildings.push({
+        id: state.nextBuildingId++, kind: 'stable', x: -29, z: -14,
+        workers: 1, permanent: true, rotation: 0.12
+      });
+    }
+    state.livestock = Math.min(state.livestock, livestockCapacity(state));
     return state;
   } catch (error) {
     console.error('Partida guardada dañada:', error);
