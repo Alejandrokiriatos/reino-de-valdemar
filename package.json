@@ -1,9 +1,9 @@
 {
   "name": "reino-de-valdemar",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "private": true,
   "type": "module",
-  "description": "Juego medieval 3D con logística física, fauna, pesca y gestión de aldeanos",
+  "description": "Juego medieval 3D con puentes, caminos, carretas y economia de almacenamiento",
   "scripts": {
     "start": "vite --host 0.0.0.0",
     "build": "vite build",
