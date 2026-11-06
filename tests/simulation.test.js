@@ -1,16 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  newGame, housingCapacity, storageCapacity, storedResources, freeWorkers, canPlace, placeBuilding,
-  changeWorkers, advanceDay, seasonForDay, weatherForDay, loadGame
+  newGame, housingCapacity, storageCapacity, storedResources, livestockCapacity, freeWorkers, canPlace, placeBuilding,
+  changeWorkers, buyLivestock, fertilizeFarm, advanceDay, seasonForDay, weatherForDay, loadGame
 } from '../src/simulation.js';
 
 test('a new settlement starts with consistent population and housing', () => {
   const state = newGame();
   assert.equal(state.population, 12);
   assert.equal(housingCapacity(state), 12);
-  assert.equal(freeWorkers(state), 8);
-  assert.equal(state.buildings.length, 7);
+  assert.equal(freeWorkers(state), 7);
+  assert.equal(state.buildings.length, 8);
+  assert.equal(state.livestock, 2);
+  assert.equal(livestockCapacity(state), 4);
   assert.ok(state.buildings.some((building) => building.kind === 'storehouse' && building.permanent));
 });
 
@@ -31,7 +33,7 @@ test('worker assignment respects building slots and available population', () =>
   const state = newGame();
   assert.equal(changeWorkers(state, 4, 1).ok, true);
   assert.equal(state.buildings.find((item) => item.id === 4).workers, 3);
-  assert.equal(freeWorkers(state), 7);
+  assert.equal(freeWorkers(state), 6);
   assert.equal(changeWorkers(state, 4, 2).ok, false);
   assert.equal(changeWorkers(state, 4, -1).ok, true);
 });
@@ -144,6 +146,7 @@ test('storehouses limit shared resources and expansion increases storage', () =>
   state.wood = 200;
   state.stone = 50;
   state.gold = 0;
+  state.manure = 0;
   const report = advanceDay(state);
   assert.ok(storedResources(state) <= storageCapacity(state));
   assert.ok(report.foodStored < report.foodProduced);
@@ -192,4 +195,40 @@ test('spring storms trigger a stronger weather event and a settlement warning', 
   assert.equal(state.weather, 'Tormenta');
   assert.equal(result.previousWeather, 'Despejado');
   assert.ok(state.notices.some((notice) => notice.includes('tormenta')));
+});
+
+
+test('livestock can be purchased up to stable capacity and produces dairy and manure', () => {
+  const state = newGame();
+  const first = buyLivestock(state, 1);
+  assert.equal(first.ok, true);
+  assert.equal(state.livestock, 3);
+  assert.equal(state.gold, 27);
+  assert.equal(buyLivestock(state, 2).ok, false);
+  const report = advanceDay(state);
+  assert.ok(report.dairyProduced > 0);
+  assert.ok(report.manureProduced > 0);
+  assert.ok(report.manureStored > 0);
+  assert.ok(state.manure > 16);
+});
+
+test('farm fertility declines with cultivation and can be restored with manure', () => {
+  const state = newGame();
+  const farm = state.buildings.find((building) => building.kind === 'farm');
+  const startingManure = state.manure;
+  advanceDay(state);
+  assert.ok(farm.fertility < 100);
+  const before = farm.fertility;
+  const result = fertilizeFarm(state, farm.id);
+  assert.equal(result.ok, true);
+  assert.ok(farm.fertility > before);
+  assert.equal(state.manure, startingManure - 8);
+  assert.equal(fertilizeFarm(state, 999).ok, false);
+});
+
+test('a staffed stable breeds cattle when there is feed and open corral space', () => {
+  const state = newGame();
+  for (let day = 0; day < 11; day++) advanceDay(state);
+  assert.equal(state.day, 12);
+  assert.equal(state.livestock, 3);
 });
