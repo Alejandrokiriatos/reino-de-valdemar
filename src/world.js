@@ -447,6 +447,16 @@ function makeVillager(scene, index, palette) {
   const cargoStone = material(0x858477);
   const cargoGold = material(0xc4a24d, 0.55, { metalness: 0.35 });
   addBox(cargo, 0, 0, 0, 0.42, 0.32, 0.34, cargoWood, false);
+  const logs = new THREE.Group();
+  for (let i = 0; i < 2; i++) {
+    const log = new THREE.Mesh(new THREE.CylinderGeometry(0.105, 0.105, 0.82, 7), palette.trunk);
+    log.rotation.z = Math.PI / 2;
+    log.position.set(0, 0.12 + i * 0.18, (i - 0.5) * 0.09);
+    log.castShadow = true;
+    logs.add(log);
+  }
+  logs.visible = false;
+  cargo.add(logs);
   for (const x of [-0.13, 0.13]) addBox(cargo, x, 0.17, 0.18, 0.035, 0.36, 0.035, cargoCloth, false);
   const sack = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 6), cargoCloth);
   sack.scale.set(1, 0.8, 0.86);
@@ -471,7 +481,7 @@ function makeVillager(scene, index, palette) {
   person.userData = {
     index, phase: Math.random() * 6, speed: 1.25 + Math.random() * 0.45,
     target: new THREE.Vector3(), legL, legR, armL, armR, torso, cargo,
-    cargoParts: { sack, stone, coin }, working: false, state: 'wandering',
+    cargoParts: { sack, stone, coin, logs }, working: false, state: 'wandering',
     workTimer: 0, wait: Math.random() * 5
   };
   scene.add(person);
@@ -967,6 +977,7 @@ export function createWorld(root) {
             p.cargoParts.sack.visible = p.cargoType === 'food';
             p.cargoParts.stone.visible = p.cargoType === 'stone';
             p.cargoParts.coin.visible = p.cargoType === 'gold';
+            p.cargoParts.logs.visible = p.cargoType === 'wood';
           }
         } else if (p.state === 'unloading') {
           p.workTimer -= dt;
