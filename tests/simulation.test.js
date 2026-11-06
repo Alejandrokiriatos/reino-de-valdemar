@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   newGame, housingCapacity, storageCapacity, storedResources, freeWorkers, canPlace, placeBuilding,
-  changeWorkers, advanceDay, seasonForDay, loadGame
+  changeWorkers, advanceDay, seasonForDay, weatherForDay, loadGame
 } from '../src/simulation.js';
 
 test('a new settlement starts with consistent population and housing', () => {
@@ -142,4 +142,33 @@ test('storehouses limit shared resources and expansion increases storage', () =>
   const afterExpansion = advanceDay(state);
   assert.ok(afterExpansion.foodStored >= 0);
   assert.ok(storedResources(state) <= storageCapacity(state));
+});
+
+
+test('weather is deterministic and spring rain improves farm production', () => {
+  assert.equal(weatherForDay(3), 'Lluvia');
+  assert.equal(weatherForDay(3), weatherForDay(3));
+  const rainy = newGame();
+  rainy.day = 2;
+  const rainReport = advanceDay(rainy);
+  const clear = newGame();
+  clear.day = 4;
+  const clearReport = advanceDay(clear);
+  assert.equal(rainReport.weather, 'Lluvia');
+  assert.equal(clearReport.weather, 'Despejado');
+  assert.ok(rainReport.cropWeatherFactor > clearReport.cropWeatherFactor);
+  assert.ok(rainReport.foodProduced > clearReport.foodProduced);
+});
+
+test('winter snowfall increases heating demand beyond a cloudy winter day', () => {
+  const snowy = newGame();
+  snowy.day = 36;
+  const snowReport = advanceDay(snowy);
+  const cloudy = newGame();
+  cloudy.day = 38;
+  const cloudReport = advanceDay(cloudy);
+  assert.equal(snowReport.weather, 'Nieve');
+  assert.equal(cloudReport.weather, 'Nublado');
+  assert.ok(snowReport.woodConsumed > cloudReport.woodConsumed);
+  assert.equal(snowy.weather, snowReport.weather);
 });
