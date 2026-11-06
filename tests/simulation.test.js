@@ -146,10 +146,10 @@ test('storehouses limit shared resources and expansion increases storage', () =>
 
 
 test('weather is deterministic and spring rain improves farm production', () => {
-  assert.equal(weatherForDay(3), 'Lluvia');
-  assert.equal(weatherForDay(3), weatherForDay(3));
+  assert.equal(weatherForDay(7), 'Lluvia');
+  assert.equal(weatherForDay(7), weatherForDay(7));
   const rainy = newGame();
-  rainy.day = 2;
+  rainy.day = 6;
   const rainReport = advanceDay(rainy);
   const clear = newGame();
   clear.day = 4;
