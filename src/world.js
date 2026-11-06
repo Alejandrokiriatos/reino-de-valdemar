@@ -810,6 +810,7 @@ export function createWorld(root) {
   const villagers = [];
   const deer = [];
   const livestock = [];
+  let livestockStableId = null;
   const stockyard = new THREE.Group();
   const deliveryCounts = { food: 0, wood: 0, stone: 0, gold: 0, manure: 0 };
   scene.add(stockyard);
@@ -1069,15 +1070,18 @@ export function createWorld(root) {
   }
 
   function setLivestock(count) {
+    const stableGroup = buildings.find((group) => group.userData.buildingData?.kind === 'stable');
+    const stable = stableGroup?.userData.buildingData;
+    const stableId = stable ? stable.id : null;
+    const amount = Math.max(0, Math.min(12, Math.floor(Number(count) || 0)));
+    if (stableId === livestockStableId && amount === livestock.length) return;
     while (livestock.length) {
       const animal = livestock.pop();
       scene.remove(animal);
       animal.traverse((child) => child.geometry?.dispose?.());
     }
-    const stableGroup = buildings.find((group) => group.userData.buildingData?.kind === 'stable');
-    if (!stableGroup) return;
-    const stable = stableGroup.userData.buildingData;
-    const amount = Math.max(0, Math.min(12, Math.floor(Number(count) || 0)));
+    livestockStableId = stableId;
+    if (!stable) return;
     const angle = stable.rotation || 0;
     for (let i = 0; i < amount; i++) {
       const localX = (i % 3 - 1) * 2.2;
@@ -1146,6 +1150,12 @@ export function createWorld(root) {
 
   function clearBuildings() {
     [...buildings].forEach(removeBuilding);
+    while (livestock.length) {
+      const animal = livestock.pop();
+      scene.remove(animal);
+      animal.traverse((child) => child.geometry?.dispose?.());
+    }
+    livestockStableId = null;
     emptyStockyard();
     for (const key of Object.keys(deliveryCounts)) deliveryCounts[key] = 0;
   }
