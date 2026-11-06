@@ -89,9 +89,13 @@ export function placeBuilding(state, kind, x, z) {
   const cost = BUILDINGS[kind].cost;
   state.wood -= cost.wood;
   state.stone -= cost.stone;
+  const riverX = 18 + Math.sin(z * 0.042) * 3.8;
+  const facingRiver = kind === 'fishery'
+    ? (x < riverX ? Math.PI / 2 : -Math.PI / 2)
+    : (Math.random() - 0.5) * 0.24;
   const building = {
     id: state.nextBuildingId++,
-    kind, x, z, workers: 0, permanent: false, rotation: (Math.random() - 0.5) * 0.24
+    kind, x, z, workers: 0, permanent: false, rotation: facingRiver
   };
   state.buildings.push(building);
   state.notices.unshift(BUILDINGS[kind].name + ' levantado en el valle.');
