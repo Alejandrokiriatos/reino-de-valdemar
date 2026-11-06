@@ -74,13 +74,13 @@ export function weatherForDay(day, season = seasonForDay(day)) {
   // storing a random generator state.
   const roll = ((Math.max(1, Math.floor(day)) * 73 + 19) % 100);
   if (season === 'Primavera') {
-    return roll < 38 ? 'Lluvia' : roll < 68 ? 'Nublado' : 'Despejado';
+    return roll < 12 ? 'Tormenta' : roll < 38 ? 'Lluvia' : roll < 68 ? 'Nublado' : 'Despejado';
   }
   if (season === 'Verano') {
-    return roll < 12 ? 'Lluvia' : roll < 29 ? 'Sequía' : roll < 58 ? 'Nublado' : 'Despejado';
+    return roll < 5 ? 'Tormenta' : roll < 12 ? 'Lluvia' : roll < 29 ? 'Sequía' : roll < 58 ? 'Nublado' : 'Despejado';
   }
   if (season === 'Otoño') {
-    return roll < 42 ? 'Lluvia' : roll < 72 ? 'Nublado' : 'Despejado';
+    return roll < 14 ? 'Tormenta' : roll < 42 ? 'Lluvia' : roll < 72 ? 'Nublado' : 'Despejado';
   }
   return roll < 43 ? 'Nieve' : roll < 79 ? 'Nublado' : 'Despejado';
 }
@@ -90,6 +90,7 @@ export function weatherDescription(weather) {
     Despejado: 'cielos despejados',
     Nublado: 'cielos cubiertos',
     Lluvia: 'lluvia',
+    Tormenta: 'una tormenta',
     Sequía: 'sequía',
     Nieve: 'nieve'
   })[weather] || 'tiempo variable';
@@ -176,6 +177,7 @@ export function advanceDay(state) {
   state.weather = weather;
   const seasonFactor = season === 'Invierno' ? 0.32 : season === 'Verano' ? 1.2 : season === 'Otoño' ? 0.92 : 1.08;
   const cropWeatherFactor = weather === 'Lluvia' ? 1.18
+    : weather === 'Tormenta' ? 1.12
     : weather === 'Sequía' ? 0.68
     : weather === 'Nieve' ? 0.62
     : weather === 'Nublado' ? 0.96 : 1;
@@ -201,7 +203,7 @@ export function advanceDay(state) {
   foodProduced += huntedFood;
   const wildlifeRecovery = season === 'Invierno' ? 0.45 : 1.15;
   state.wildlife = Math.min(100, Math.max(0, state.wildlife + wildlifeRecovery - huntingWorkers * 1.05));
-  const fishRecovery = weather === 'Lluvia' ? 2.0 : weather === 'Sequía' ? 0.7 : 1.5;
+  const fishRecovery = weather === 'Tormenta' ? 2.1 : weather === 'Lluvia' ? 2.0 : weather === 'Sequía' ? 0.7 : 1.5;
   const fishFactor = state.fishStock <= 0 ? 0 : 0.2 + 0.8 * Math.min(1, state.fishStock / 35);
   const fishCaught = fishingWorkers * 2.0 * seasonFactor * fishFactor;
   foodProduced += fishCaught;
