@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   newGame, housingCapacity, storageCapacity, storedResources, livestockCapacity, freeWorkers, canPlace, placeBuilding,
-  changeWorkers, buyLivestock, fertilizeFarm, advanceDay, seasonForDay, weatherForDay, loadGame
+  changeWorkers, buyLivestock, fertilizeFarm, demolishBuilding, advanceDay, seasonForDay, weatherForDay, loadGame
 } from '../src/simulation.js';
 
 test('a new settlement starts with consistent population and housing', () => {
@@ -141,7 +141,7 @@ test('fishing requires a river bank and depleted fish stocks recover', () => {
 test('storehouses limit shared resources and expansion increases storage', () => {
   const state = newGame();
   assert.equal(storageCapacity(state), 650);
-  assert.equal(storedResources(state), 445);
+  assert.equal(storedResources(state), 461);
   state.food = 400;
   state.wood = 200;
   state.stone = 50;
@@ -224,6 +224,11 @@ test('farm fertility declines with cultivation and can be restored with manure',
   assert.ok(farm.fertility > before);
   assert.equal(state.manure, startingManure - 8);
   assert.equal(fertilizeFarm(state, 999).ok, false);
+  const addedStable = { id: 15, kind: 'stable', x: 50, z: 40, workers: 0, permanent: false };
+  state.buildings.push(addedStable);
+  state.livestock = 5;
+  const cannotDemolish = state.buildings.find((building) => building.id === 15);
+  assert.equal(demolishBuilding(state, cannotDemolish.id).ok, false);
 });
 
 test('a staffed stable breeds cattle when there is feed and open corral space', () => {
