@@ -27,7 +27,7 @@ Para generar un ejecutable portable en Windows:
 - B para plegar el panel de construcción.
 - Espacio para pausar o reanudar.
 - Los botones 1×, 2× y 3× cambian la velocidad de la simulación.
-- Ctrl + S guarda la partida.
+- Ctrl + S guarda la partida; también hay guardado automático cada tres días.
 
 ## Sistemas incluidos en esta versión
 
@@ -40,6 +40,10 @@ Para generar un ejecutable portable en Windows:
 - Inspección de edificios, asignación de trabajadores, demolición y recuperación parcial de materiales.
 - Colocación con previsualización, validación de espacio y comprobación de costes.
 - Guardado local y recuperación de partidas anteriores.
+
+## Validación
+
+Ejecuta `npm run check` para revisar la sintaxis de los módulos y ejecutar las pruebas de economía, construcción, trabajadores y estaciones.
 
 ## Estado del proyecto
 
