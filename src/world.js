@@ -520,6 +520,57 @@ export function createWorld(root) {
   fill.position.set(26, 20, -30);
   scene.add(fill);
 
+
+  const campfire = new THREE.Group();
+  campfire.position.set(-1.8, terrainHeight(-1.8, 1.8), 1.8);
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2;
+    const stoneRing = new THREE.Mesh(
+      new THREE.DodecahedronGeometry(0.24, 0),
+      palette.stone
+    );
+    stoneRing.position.set(Math.cos(angle) * 0.82, 0.18, Math.sin(angle) * 0.82);
+    stoneRing.scale.set(1.1, 0.72, 0.9);
+    stoneRing.castShadow = true;
+    campfire.add(stoneRing);
+  }
+  const firewoodA = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.15, 7), palette.trunk);
+  firewoodA.rotation.z = Math.PI / 2;
+  firewoodA.position.y = 0.28;
+  campfire.add(firewoodA);
+  const firewoodB = firewoodA.clone();
+  firewoodB.rotation.x = Math.PI / 2;
+  firewoodB.rotation.z = 0.12;
+  campfire.add(firewoodB);
+  const flameMaterial = new THREE.MeshStandardMaterial({
+    color: 0xffa13c, emissive: 0xe85b18, emissiveIntensity: 1.8, roughness: 0.7
+  });
+  const flame = new THREE.Mesh(new THREE.ConeGeometry(0.34, 0.92, 7), flameMaterial);
+  flame.position.y = 0.78;
+  flame.castShadow = false;
+  campfire.add(flame);
+  const innerFlame = new THREE.Mesh(
+    new THREE.ConeGeometry(0.19, 0.62, 6),
+    new THREE.MeshBasicMaterial({ color: 0xffdf81 })
+  );
+  innerFlame.position.y = 0.7;
+  campfire.add(innerFlame);
+  const smokeMaterial = new THREE.MeshBasicMaterial({
+    color: 0x77796e, transparent: true, opacity: 0.1, depthWrite: false
+  });
+  const smokePuffs = [];
+  for (let i = 0; i < 3; i++) {
+    const puff = new THREE.Mesh(new THREE.SphereGeometry(0.22, 7, 5), smokeMaterial);
+    puff.position.set((i - 1) * 0.12, 1.5 + i * 0.48, 0);
+    puff.scale.set(1, 1.25, 1);
+    campfire.add(puff);
+    smokePuffs.push(puff);
+  }
+  scene.add(campfire);
+  const fireLight = new THREE.PointLight(0xffa253, 0.8, 17, 2);
+  fireLight.position.copy(campfire.position).add(new THREE.Vector3(0, 2.4, 0));
+  scene.add(fireLight);
+
   const groundGeometry = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, 120, 120);
   const ground = new THREE.Mesh(
     groundGeometry,
@@ -840,6 +891,16 @@ export function createWorld(root) {
     sun.position.set(Math.cos(angle) * 42 - 4, Math.sin(angle) * 38 + 18, 22);
     sun.intensity = 0.72 + Math.max(0, Math.sin(angle)) * 2.25;
     const night = Math.max(0, -Math.sin(angle));
+    flame.scale.set(0.88 + Math.sin(elapsed * 8.2) * 0.08, 0.86 + Math.sin(elapsed * 11.3) * 0.18, 0.88 + Math.cos(elapsed * 7.5) * 0.08);
+    innerFlame.scale.y = 0.84 + Math.sin(elapsed * 13.1) * 0.16;
+    flame.rotation.y = elapsed * 0.7;
+    fireLight.intensity = 0.65 + night * 1.9 + Math.sin(elapsed * 9.4) * 0.12;
+    smokePuffs.forEach((puff, index) => {
+      const phase = (elapsed * 0.28 + index / 3) % 1;
+      puff.position.y = 1.25 + phase * 2.3;
+      puff.position.x = Math.sin(elapsed * 0.45 + index) * 0.18;
+      puff.scale.setScalar(0.38 + phase * 0.8);
+    });
     scene.fog.density = 0.0065 + night * 0.0015;
     scene.background.setRGB(
       0.64 + Math.max(0, Math.sin(angle)) * 0.12,
