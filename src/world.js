@@ -585,6 +585,7 @@ function makeVillager(scene, index, palette) {
   }
   const cargo = new THREE.Group();
   const cargoCloth = material(0xb39a66);
+  const cargoManure = material(0x725235);
   const cargoStone = material(0x858477);
   const cargoGold = material(0xc4a24d, 0.55, { metalness: 0.35 });
   addBox(cargo, 0, 0, 0, 0.42, 0.32, 0.34, cargoWood, false);
@@ -604,6 +605,11 @@ function makeVillager(scene, index, palette) {
   sack.position.set(0, 0.1, 0);
   sack.visible = false;
   cargo.add(sack);
+  const manureSack = new THREE.Mesh(new THREE.SphereGeometry(0.23, 8, 6), cargoManure);
+  manureSack.scale.set(1, 0.78, 0.86);
+  manureSack.position.set(0, 0.1, 0);
+  manureSack.visible = false;
+  cargo.add(manureSack);
   const stone = new THREE.Mesh(new THREE.DodecahedronGeometry(0.23, 0), cargoStone);
   stone.position.y = 0.08;
   stone.visible = false;
@@ -625,7 +631,7 @@ function makeVillager(scene, index, palette) {
     index, phase: Math.random() * 6, speed: 1.25 + Math.random() * 0.45,
     target: new THREE.Vector3(), legL, legR, armL, armR, torso, cargo, cart,
     cartWheels: cart.userData.wheels || [],
-    cargoParts: { sack, stone, coin, logs }, working: false, state: 'wandering',
+    cargoParts: { sack, manureSack, stone, coin, logs }, working: false, state: 'wandering',
     workTimer: 0, wait: Math.random() * 5
   };
   scene.add(person);
@@ -940,7 +946,8 @@ export function createWorld(root) {
     { points: [[-8, -16], [-6, -12], [-3, -10], [0, -8], [4, -5]], width: 2.7 },
     { points: [[-3, -9], [-6, -5], [-5, 1], [-4, 7]], width: 2.25 },
     { points: [[-7, -13], [-11, -11], [-15, -8], [-17, -3], [-19, 5]], width: 2.35 },
-    { points: [[-12, -5], [-18, 0], [-24, 6], [-30, 12], [-34, 16]], width: 1.9 }
+    { points: [[-12, -5], [-18, 0], [-24, 6], [-30, 12], [-34, 16]], width: 1.9 },
+    { points: [[-11, -11], [-16, -12], [-22, -13], [-29, -14]], width: 1.65 }
   ];
   villageRoads.forEach(({ points, width }) => {
     const road = makeRoad(scene, points, width);
@@ -1542,6 +1549,7 @@ export function createWorld(root) {
             p.cart.visible = true;
             p.cargo.visible = true;
             p.cargoParts.sack.visible = p.cargoType === 'food';
+            p.cargoParts.manureSack.visible = p.cargoType === 'manure';
             p.cargoParts.stone.visible = p.cargoType === 'stone';
             p.cargoParts.coin.visible = p.cargoType === 'gold';
             p.cargoParts.logs.visible = p.cargoType === 'wood';
