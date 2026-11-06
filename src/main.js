@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { createWorld, terrainHeight } from './world.js';
 import {
-  BUILDINGS, SEASONS, newGame, housingCapacity, assignedWorkers, freeWorkers,
+  BUILDINGS, SEASONS, newGame, housingCapacity, storageCapacity, storedResources, assignedWorkers, freeWorkers,
   seasonForDay, canAfford, canPlace, placeBuilding, changeWorkers, demolishBuilding,
   advanceDay, saveGame, loadGame, saveKeyExists
 } from './simulation.js';
@@ -73,6 +73,10 @@ function updateHud() {
   $('#gold').textContent = Math.floor(state.gold);
   $('#people').textContent = state.population;
   $('#housing').textContent = housingCapacity(state);
+  const capacity = storageCapacity(state);
+  const stored = storedResources(state);
+  $('#storageCapacity').textContent = Math.floor(stored) + ' / ' + capacity;
+  $('#storageBar').style.width = (capacity ? Math.min(100, stored / capacity * 100) : 0) + '%';
   $('#season').textContent = season;
   $('#day').textContent = 'Día ' + state.day;
   $('#freeWorkers').textContent = freeWorkers(state);
