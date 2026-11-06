@@ -31,7 +31,7 @@ test('worker assignment respects building slots and available population', () =>
   const state = newGame();
   assert.equal(changeWorkers(state, 4, 1).ok, true);
   assert.equal(state.buildings.find((item) => item.id === 4).workers, 3);
-  assert.equal(freeWorkers(state), 8);
+  assert.equal(freeWorkers(state), 7);
   assert.equal(changeWorkers(state, 4, 2).ok, false);
   assert.equal(changeWorkers(state, 4, -1).ok, true);
 });
