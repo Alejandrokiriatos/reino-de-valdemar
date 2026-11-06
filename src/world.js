@@ -506,8 +506,11 @@ export function createWorld(root) {
       : kind === 'market' ? [7, 0.16, 5.8]
       : kind === 'well' ? [3.2, 0.16, 3.2]
       : [6, 0.16, 5.5];
-    ghost.geometry.dispose();
-    ghost.geometry = new THREE.BoxGeometry(...dimensions);
+    if (ghost.userData.kind !== kind) {
+      ghost.geometry.dispose();
+      ghost.geometry = new THREE.BoxGeometry(...dimensions);
+      ghost.userData.kind = kind;
+    }
     ghost.position.set(x, terrainHeight(x, z) + 0.2, z);
     ghost.material.color.set(valid ? 0x75c879 : 0xd65b50);
     ghost.visible = true;
