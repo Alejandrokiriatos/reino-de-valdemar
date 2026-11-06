@@ -98,7 +98,7 @@ function updateHud() {
 function addWorldBuildings() {
   world.clearBuildings();
   state.buildings.forEach((building) => world.addBuilding(building));
-  world.setPopulation(state.population);
+  world.setPopulation(state.population, true);
   world.setJobs(state.buildings);
 }
 
