@@ -22,15 +22,17 @@ export function newGame() {
     gold: 35,
     population: 12,
     morale: 78,
+    wildlife: 100,
     buildings: [
       { id: 1, kind: 'tower', x: -8, z: -16, workers: 0, permanent: true, rotation: 0 },
       { id: 2, kind: 'house', x: 0, z: -8, workers: 0, permanent: true, rotation: 0.08 },
       { id: 3, kind: 'house', x: 7, z: -4, workers: 0, permanent: true, rotation: -0.12 },
       { id: 4, kind: 'farm', x: -4, z: 7, workers: 2, permanent: true, rotation: -0.08 },
       { id: 5, kind: 'sawmill', x: -19, z: 5, workers: 1, permanent: true, rotation: 0.2 },
-      { id: 6, kind: 'storehouse', x: -17, z: -8, workers: 0, permanent: true, rotation: 0 }
+      { id: 6, kind: 'storehouse', x: -17, z: -8, workers: 0, permanent: true, rotation: 0 },
+      { id: 7, kind: 'hunter', x: -34, z: 16, workers: 0, permanent: false, rotation: 0.18 }
     ],
-    nextBuildingId: 7,
+    nextBuildingId: 8,
     notices: ['La aldea de Valdemar despierta. Cuida sus reservas antes de que llegue el invierno.']
   };
 }
@@ -123,13 +125,20 @@ export function advanceDay(state) {
   let woodProduced = 0;
   let stoneProduced = 0;
   let goldProduced = 0;
+  let huntingWorkers = 0;
   for (const building of state.buildings) {
     const workers = Math.max(0, Number(building.workers) || 0);
     if (building.kind === 'farm') foodProduced += workers * 2.55 * seasonFactor;
     if (building.kind === 'sawmill') woodProduced += workers * 1.65;
     if (building.kind === 'quarry') stoneProduced += workers * 1.1;
     if (building.kind === 'market') goldProduced += workers * 1.25;
+    if (building.kind === 'hunter') huntingWorkers += workers;
   }
+  const wildlifeFactor = state.wildlife <= 0 ? 0 : 0.25 + 0.75 * Math.min(1, state.wildlife / 30);
+  const huntedFood = huntingWorkers * 1.85 * seasonFactor * wildlifeFactor;
+  foodProduced += huntedFood;
+  const wildlifeRecovery = season === 'Invierno' ? 0.45 : 1.15;
+  state.wildlife = Math.min(100, Math.max(0, state.wildlife + wildlifeRecovery - huntingWorkers * 1.05));
 
   const winter = season === 'Invierno';
   const foodConsumed = state.population * (winter ? 0.22 : 0.19);
@@ -177,7 +186,8 @@ export function advanceDay(state) {
   state.notices = state.notices.slice(0, 8);
   return {
     season,
-    foodProduced, foodConsumed, woodProduced, woodConsumed, stoneProduced, goldProduced
+    foodProduced, huntedFood, huntingWorkers, wildlife: state.wildlife,
+    foodConsumed, woodProduced, woodConsumed, stoneProduced, goldProduced
   };
 }
 
@@ -207,6 +217,7 @@ export function loadGame() {
       gold: Math.max(0, Number(saved.gold) || 0),
       population: Math.max(1, Number(saved.population ?? saved.pop) || 1),
       morale: Math.min(100, Math.max(0, Number(saved.morale) || 70)),
+      wildlife: Math.min(100, Math.max(0, Number(saved.wildlife ?? 100))),
       notices: Array.isArray(saved.notices) ? saved.notices.slice(0, 8) : [],
       buildings: saved.buildings.filter((b) => b && BUILDINGS[b.kind]).map((b, index) => ({
         id: Number(b.id) || index + 1,
