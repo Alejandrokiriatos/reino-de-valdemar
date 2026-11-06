@@ -1,10 +1,113 @@
 <!doctype html>
-<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Reino de Valdemar</title><link rel="stylesheet" href="/style.css"></head><body>
-<div id="game"></div>
-<div id="hud" class="hidden">
-<header><div class="crest">♜</div><div><b>VALDEMAR</b><small>EL VALLE DE LOS PRIMEROS REYES</small></div><div class="resources"><span>🌾 <b id="food">120</b></span><span>🪵 <b id="wood">90</b></span><span>🪨 <b id="stone">65</b></span><span>👥 <b id="people">12</b></span><span>☀️ <b id="season">Primavera · Día 1</b></span></div><button id="menuBtn">☰ Reino</button></header>
-<aside class="panel"><h3>CONSEJO DEL REINO</h3><p id="message">El valle espera tus órdenes, señor.</p><hr><h4>CONSTRUIR</h4><button data-build="house">⌂ Casa <small>30 madera</small></button><button data-build="farm">♧ Granja <small>25 madera</small></button><button data-build="sawmill">⚒ Aserradero <small>40 madera</small></button><button data-build="tower">♜ Torre <small>35 madera · 20 piedra</small></button><p class="hint">Selecciona una estructura y pulsa sobre el terreno. Clic derecho para mover cámara.</p></aside>
-<footer><span id="status">Tu reino comienza con una pequeña aldea.</span><div><button id="pause">Ⅱ Pausar</button><button id="save">Guardar</button></div></footer>
-</div>
-<div id="mainmenu"><div class="menu-card"><div class="sigil">♜</div><p class="eyebrow">CRÓNICAS DE UN REINO OLVIDADO</p><h1>REINO DE<br><em>VALDEMAR</em></h1><p class="subtitle">Donde cada piedra guarda una historia.</p><button id="newGame" class="primary">NUEVA PARTIDA</button><button id="continue">CONTINUAR</button><button id="options">OPCIONES</button><div id="optionsBox" class="hidden"><label>Calidad gráfica <select id="quality"><option value="low">Baja</option><option value="medium" selected>Media</option><option value="high">Alta</option></select></label><label><input id="shadows" type="checkbox" checked> Sombras</label></div><small>VERSIÓN 1.4.0 · DESARROLLO EN CURSO</small></div></div>
-<script type="module" src="/src/main.js"></script></body></html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#151a15">
+  <meta name="description" content="Reino de Valdemar: construye, administra y protege tu asentamiento medieval.">
+  <title>Reino de Valdemar</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div id="game" aria-label="Mundo tridimensional de Reino de Valdemar"></div>
+
+  <main id="hud" class="hidden">
+    <header class="topbar">
+      <div class="realm-mark"><span>♜</span></div>
+      <div class="realm-title">
+        <strong>VALDEMAR</strong>
+        <small>EL VALLE DE LOS PRIMEROS REYES</small>
+      </div>
+      <div class="resources" aria-label="Recursos del reino">
+        <div class="resource"><span class="resource-icon">🌾</span><div><small>ALIMENTOS</small><b id="food">180</b></div></div>
+        <div class="resource"><span class="resource-icon">🪵</span><div><small>MADERA</small><b id="wood">130</b></div></div>
+        <div class="resource"><span class="resource-icon">🪨</span><div><small>PIEDRA</small><b id="stone">100</b></div></div>
+        <div class="resource"><span class="resource-icon">🪙</span><div><small>ORO</small><b id="gold">35</b></div></div>
+        <div class="resource people-resource"><span class="resource-icon">👥</span><div><small>HABITANTES</small><b><span id="people">12</span><i>/</i><span id="housing">12</span></b></div></div>
+      </div>
+      <div class="realm-date"><span id="season">Primavera</span><b id="day">Día 1</b></div>
+      <button id="menuBtn" class="icon-button" title="Menú del reino" aria-label="Abrir menú">☰</button>
+    </header>
+
+    <aside id="buildPanel" class="side-panel build-panel">
+      <div class="panel-heading">
+        <div><span class="panel-kicker">ÓRDENES DEL SEÑOR</span><h2>Construcción</h2></div>
+        <button id="collapseBuild" class="collapse-button" title="Ocultar panel">−</button>
+      </div>
+      <p class="panel-intro">Levanta un asentamiento capaz de sobrevivir a cada estación.</p>
+      <div class="build-section-label">VIVIENDA Y SERVICIOS</div>
+      <button class="build-card" data-build="house"><span class="build-icon">⌂</span><span class="build-info"><b>Casa campesina</b><small>+6 plazas de vivienda</small></span><span class="cost">30🪵  0🪨</span></button>
+      <button class="build-card" data-build="market"><span class="build-icon">⚑</span><span class="build-info"><b>Mercado</b><small>Produce oro con trabajadores</small></span><span class="cost">65🪵  20🪨</span></button>
+      <button class="build-card" data-build="well"><span class="build-icon">◉</span><span class="build-info"><b>Pozo</b><small>Servicio para la comunidad</small></span><span class="cost">25🪵  25🪨</span></button>
+      <div class="build-section-label">PRODUCCIÓN Y DEFENSA</div>
+      <button class="build-card" data-build="farm"><span class="build-icon">♧</span><span class="build-info"><b>Granja</b><small>Alimentos según la estación</small></span><span class="cost">40🪵  10🪨</span></button>
+      <button class="build-card" data-build="sawmill"><span class="build-icon">⚒</span><span class="build-info"><b>Aserradero</b><small>Produce madera</small></span><span class="cost">55🪵  10🪨</span></button>
+      <button class="build-card" data-build="quarry"><span class="build-icon">⛏</span><span class="build-info"><b>Cantera</b><small>Extrae piedra</small></span><span class="cost">45🪵  20🪨</span></button>
+      <button class="build-card" data-build="tower"><span class="build-icon">♜</span><span class="build-info"><b>Torre de guardia</b><small>Vigila los caminos</small></span><span class="cost">50🪵  35🪨</span></button>
+      <div class="panel-footer">
+        <div class="labor-row"><span>Mano de obra libre</span><b id="freeWorkers">9</b></div>
+        <div class="morale-label"><span>Ánimo de la aldea</span><b id="moraleValue">78%</b></div>
+        <div class="morale-track"><i id="morale"></i></div>
+        <p class="control-hint">Clic en terreno para construir · Clic en edificio para inspeccionar<br>Botón derecho y arrastrar: mover cámara · Rueda: zoom · B: panel</p>
+      </div>
+    </aside>
+
+    <aside id="inspector" class="side-panel inspector hidden">
+      <div class="panel-heading">
+        <div><span class="panel-kicker">DETALLES DEL ASENTAMIENTO</span><h2 id="inspectTitle">Edificio</h2></div>
+        <button id="closeInspector" class="collapse-button" title="Cerrar">×</button>
+      </div>
+      <p id="inspectDescription" class="panel-intro"></p>
+      <div class="inspect-status"><span id="inspectLevel">Construcción de la aldea</span><b id="inspectCapacity">—</b></div>
+      <div class="worker-control">
+        <div><small>TRABAJADORES ASIGNADOS</small><strong id="inspectWorkers">0 / 0</strong></div>
+        <div class="worker-buttons"><button id="workerMinus" aria-label="Quitar trabajador">−</button><button id="workerPlus" aria-label="Asignar trabajador">+</button></div>
+      </div>
+      <p class="control-hint">Los trabajadores aumentan la producción del edificio. No asignes a todos: la aldea necesita mano de obra libre.</p>
+      <button id="demolish" class="danger-button">Demoler edificio</button>
+    </aside>
+
+    <div id="toast" role="status" aria-live="polite"></div>
+
+    <footer class="bottom-bar">
+      <div class="status-block"><span class="status-dot"></span><span id="status">El valle espera tus órdenes, señor.</span></div>
+      <div id="speed" class="speed-controls" aria-label="Velocidad del juego">
+        <button data-speed="1" class="selected">1×</button>
+        <button data-speed="2">2×</button>
+        <button data-speed="3">3×</button>
+      </div>
+      <div class="bottom-actions">
+        <button id="centerCamera" title="Centrar cámara">◎</button>
+        <button id="pause">Ⅱ Pausar</button>
+        <button id="save">Guardar</button>
+        <button id="fullscreen" title="Pantalla completa">⛶</button>
+      </div>
+    </footer>
+  </main>
+
+  <section id="mainmenu" class="menu-screen">
+    <div class="menu-atmosphere"></div>
+    <div class="menu-card">
+      <div class="menu-crest">♜</div>
+      <p class="menu-kicker">CRÓNICAS DE UN REINO OLVIDADO</p>
+      <h1>REINO DE<br><em>VALDEMAR</em></h1>
+      <div class="title-divider"><span>✦</span></div>
+      <p class="menu-subtitle">Donde cada piedra guarda una historia.</p>
+      <button id="resume" class="menu-button secondary hidden">VOLVER AL REINO</button>
+      <button id="newGame" class="menu-button primary">NUEVA PARTIDA</button>
+      <button id="continue" class="menu-button secondary">CONTINUAR</button>
+      <button id="options" class="menu-button text-button">OPCIONES</button>
+      <div id="optionsBox" class="options-box hidden">
+        <label>Calidad gráfica
+          <select id="quality"><option value="low">Baja</option><option value="medium" selected>Media</option><option value="high">Alta</option></select>
+        </label>
+        <label class="check-label"><input id="shadows" type="checkbox" checked> Sombras dinámicas</label>
+      </div>
+      <small class="version">VERSIÓN 1.5.0 · DESARROLLO EN CURSO</small>
+    </div>
+    <div class="menu-quote">UN REINO NO SE HEREDA: SE CONSTRUYE.</div>
+  </section>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
