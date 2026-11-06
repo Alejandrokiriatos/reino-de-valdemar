@@ -36,7 +36,8 @@ const BUILD_LABELS = {
   tower: 'Torre de guardia',
   market: 'Mercado',
   well: 'Pozo',
-  storehouse: 'Almacén'
+  storehouse: 'Almacén',
+  hunter: 'Cabaña de cazadores'
 };
 
 const BUILD_DESC = {
@@ -47,7 +48,8 @@ const BUILD_DESC = {
   tower: 'Vigila los caminos y refuerza la defensa del asentamiento.',
   market: 'Genera oro y mejora el ánimo de los habitantes.',
   well: 'Asegura un punto de agua y mejora la vida de la aldea.',
-  storehouse: 'Centro de acopio. Los trabajadores llevan hasta aquí los productos de sus talleres.'
+  storehouse: 'Centro de acopio. Los trabajadores llevan hasta aquí los productos de sus talleres.',
+  hunter: 'Los cazadores recorren los bosques, obtienen carne y dependen de que la fauna pueda recuperarse.'
 };
 
 function notify(message, important = false) {
@@ -71,6 +73,8 @@ function updateHud() {
   $('#season').textContent = season;
   $('#day').textContent = 'Día ' + state.day;
   $('#freeWorkers').textContent = freeWorkers(state);
+  $('#wildlife').textContent = Math.round(state.wildlife) + '%';
+  $('#wildlifeBar').style.width = state.wildlife + '%';
   const deliveries = world.getDeliveryCounts();
   $('#logistics').textContent = '🌾 ' + deliveries.food + '  ·  🪵 ' + deliveries.wood + '  ·  🪨 ' + deliveries.stone + '  ·  🪙 ' + deliveries.gold;
   $('#morale').style.width = state.morale + '%';
