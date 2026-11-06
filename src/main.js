@@ -1,34 +1,421 @@
 import * as THREE from 'three';
+import { createWorld, terrainHeight } from './world.js';
+import {
+  BUILDINGS, SEASONS, newGame, housingCapacity, assignedWorkers, freeWorkers,
+  seasonForDay, canAfford, canPlace, placeBuilding, changeWorkers, demolishBuilding,
+  advanceDay, saveGame, loadGame, saveKeyExists
+} from './simulation.js';
 import './world.css';
-const root=document.querySelector('#game');const scene=new THREE.Scene();scene.background=new THREE.Color(0x9ba995);scene.fog=new THREE.FogExp2(0x9ba995,.009);
-const camera=new THREE.PerspectiveCamera(48,innerWidth/innerHeight,.1,500);camera.position.set(24,26,32);
-const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;root.appendChild(renderer.domElement);
-scene.add(new THREE.HemisphereLight(0xdce8d5,0x46503b,2));const sun=new THREE.DirectionalLight(0xffe2b3,3);sun.position.set(-25,40,18);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-55;sun.shadow.camera.right=55;sun.shadow.camera.top=55;sun.shadow.camera.bottom=-55;scene.add(sun);
-const mat=(c,r=.9)=>new THREE.MeshStandardMaterial({color:c,roughness:r});const groundMat=mat(0x667a4d);const ground=new THREE.Mesh(new THREE.PlaneGeometry(180,180,80,80),groundMat);ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
-const terrain=ground.geometry;const pos=terrain.attributes.position;for(let i=0;i<pos.count;i++){const x=pos.getX(i),y=pos.getY(i);pos.setZ(i,Math.sin(x*.12)*.32+Math.cos(y*.09)*.4+Math.sin((x+y)*.06)*.25)}terrain.computeVertexNormals();
-const water=new THREE.Mesh(new THREE.PlaneGeometry(9,150),new THREE.MeshStandardMaterial({color:0x557e87,roughness:.22,metalness:.15,transparent:true,opacity:.9}));water.rotation.x=-Math.PI/2;water.position.set(21,.12,0);scene.add(water);
-const wood=mat(0x755035),stone=mat(0x888477),roof=mat(0x684238),leaf=[mat(0x405d37),mat(0x526d3c),mat(0x647b43)],trunk=mat(0x59402b);
-function box(parent,x,y,z,w,h,d,m){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o}
-function tree(x,z,s=1){const g=new THREE.Group();g.position.set(x,0,z);box(g,0,s,0,.35*s,2*s,.35*s,trunk);for(let i=0;i<3;i++){const c=new THREE.Mesh(new THREE.ConeGeometry((1.35-i*.22)*s,2.2*s,7),leaf[(Math.random()*3)|0]);c.position.y=(2+i*.9)*s;c.castShadow=true;g.add(c)}scene.add(g)}
-for(let i=0;i<190;i++){const x=(Math.random()-.5)*155,z=(Math.random()-.5)*150;if(Math.abs(x)<18&&Math.abs(z)<18)continue;if(x>14&&x<27)continue;tree(x,z,.7+Math.random()*.65)}
-function building(type,x,z){const g=new THREE.Group();g.position.set(x,0,z);const timber=mat(0x765238),dark=mat(0x392c20),green=mat(0x6f8746);if(type==='farm'){box(g,0,.12,0,8,.22,7,wood);for(let row=0;row<4;row++){const crop=new THREE.Group();for(let col=0;col<7;col++){const stem=box(crop,-2.7+col*.9,.55,-1.5+row, .09,.8,.09,green);stem.rotation.z=(Math.random()-.5)*.35;const head=new THREE.Mesh(new THREE.SphereGeometry(.16,6,5),mat(0xb6a052));head.position.set(-2.7+col*.9,.98,-1.5+row);crop.add(head)}g.add(crop)}box(g,0,.35,3.9,2,.7,.3,timber);box(g,0,.85,3.9,2,.12,.3,roof)}else if(type==='sawmill'){box(g,0,.35,0,7,.7,5,stone);box(g,0,2,0,5,3.2,4,timber);box(g,0,3.8,0,5.8,.35,4.8,roof);for(let i=0;i<4;i++){const log=new THREE.Mesh(new THREE.CylinderGeometry(.22,.22,3.5,8),wood);log.rotation.z=Math.PI/2;log.position.set(-2+i*.65,.65,3);g.add(log)}box(g,0,2.1,2.08,1.3,1.7,.12,dark);const blade=new THREE.Mesh(new THREE.TorusGeometry(.8,.07,8,24),stone);blade.position.set(1.7,1.4,2.1);g.add(blade)}else{const w=type==='tower'?4:5,d=type==='tower'?4:4.5,h=type==='tower'?8:3.4;box(g,0,h/2,0,w,h,d,type==='tower'?stone:wood);if(type!=='tower'){const r=new THREE.Mesh(new THREE.ConeGeometry(4.2,2.7,4),roof);r.position.y=h+1;r.rotation.y=Math.PI/4;r.castShadow=true;g.add(r);box(g,0,1.1,d/2+.03,.9,2,.12,dark);for(const xx of [-1.4,1.4])box(g,xx,2.1,d/2+.08,.55,.65,.12,mat(0x222c2b))}else{const r=new THREE.Mesh(new THREE.CylinderGeometry(2.8,2.8,.7,8),roof);r.position.y=h+.35;g.add(r)}}g.userData.kind=type;scene.add(g);return g}
-const castle=building('tower',-8,-9);building('house',0,-8);building('house',7,-4);building('farm',-4,6);for(let i=0;i<7;i++)tree(-13+i*2.2,4+Math.sin(i)*2,.7);
-const villagers=[];const skin=mat(0xd0a078),cloth=[mat(0x8a4939),mat(0x455d70),mat(0x9a8048),mat(0x68734a)];for(let i=0;i<12;i++){const g=new THREE.Group();const body=new THREE.Mesh(new THREE.CapsuleGeometry(.28,.65,3,6),cloth[i%4]);body.position.y=.85;g.add(body);const head=new THREE.Mesh(new THREE.SphereGeometry(.23,8,6),skin);head.position.y=1.45;g.add(head);const leg1=box(g,-.14,.28,0,.16,.55,.18,wood),leg2=box(g,.14,.28,0,.16,.55,.18,wood);g.position.set((Math.random()-.5)*13,0,(Math.random()-.5)*12);g.userData={phase:Math.random()*6,speed:.5+Math.random()*.5,leg1,leg2};scene.add(g);villagers.push(g)}
-const ray=new THREE.Raycaster(),mouse=new THREE.Vector2(),hit=new THREE.Vector3();let selected=null,buildMode=null,paused=false,day=1,food=120,logs=90,rocks=65,pop=12;
-function updateHud(){document.querySelector('#food').textContent=food;document.querySelector('#wood').textContent=logs;document.querySelector('#stone').textContent=rocks;document.querySelector('#people').textContent=pop;document.querySelector('#season').textContent=['Primavera','Verano','Otoño','Invierno'][Math.floor((day-1)/12)%4]+' · Día '+day}
-function start(){document.querySelector('#mainmenu').classList.add('hidden');document.querySelector('#hud').classList.remove('hidden');}
-document.querySelector('#newGame').onclick=()=>{scene.children.filter(o=>o.userData?.kind).forEach(o=>scene.remove(o));food=120;logs=90;rocks=65;pop=12;day=1;updateHud();start()};
-document.querySelector('#continue').onclick=()=>{const s=JSON.parse(localStorage.getItem('valdemar-save')||'null');if(s){({food,logs,rocks,pop,day}=s);scene.children.filter(o=>o.userData?.kind).forEach(o=>scene.remove(o));(s.buildings||[]).forEach(b=>{const o=building(b.kind,b.x,b.z);o.position.y=b.y||0});updateHud()}start()};
-document.querySelector('#options').onclick=()=>document.querySelector('#optionsBox').classList.toggle('hidden');
-document.querySelector('#shadows').onchange=e=>renderer.shadowMap.enabled=e.target.checked;
-document.querySelector('#quality').onchange=e=>renderer.setPixelRatio(Math.min(devicePixelRatio,e.target.value==='high'?2:e.target.value==='medium'?1.5:1));
-document.querySelector('#menuBtn').onclick=()=>{document.querySelector('#mainmenu').classList.remove('hidden');document.querySelector('#hud').classList.add('hidden')};
-document.querySelector('#pause').onclick=e=>{paused=!paused;e.target.textContent=paused?'▶ Reanudar':'Ⅱ Pausar'};
-document.querySelector('#save').onclick=()=>{localStorage.setItem('valdemar-save',JSON.stringify({food,logs,rocks,pop,day,buildings:scene.children.filter(o=>o.userData?.kind).map(o=>({kind:o.userData.kind,x:o.position.x,z:o.position.z,y:o.position.y}))}));document.querySelector('#status').textContent='Partida guardada.'};
-document.querySelectorAll('[data-build]').forEach(b=>b.onclick=()=>{buildMode=b.dataset.build;document.querySelector('#message').textContent='Coloca '+buildMode+' en un terreno libre.'});
-renderer.domElement.addEventListener('pointerdown',e=>{if(e.button!==0||document.querySelector('#hud').classList.contains('hidden'))return;mouse.set(e.clientX/innerWidth*2-1,-e.clientY/innerHeight*2+1);ray.setFromCamera(mouse,camera);const terrainHits=ray.intersectObject(ground,false);if(!terrainHits.length)return;hit.copy(terrainHits[0].point);if(buildMode){const cost={house:[30,0],farm:[25,0],sawmill:[40,0],tower:[35,20]}[buildMode];if(logs<cost[0]||rocks<cost[1]){document.querySelector('#message').textContent='No tienes suficientes recursos.';return}logs-=cost[0];rocks-=cost[1];const placed=building(buildMode,Math.round(hit.x/2)*2,Math.round(hit.z/2)*2);placed.position.y=terrainHits[0].point.y;if(buildMode==='house')pop+=2;buildMode=null;updateHud();return}});
-let drag=false,lastX=0,lastY=0;renderer.domElement.addEventListener('pointerdown',e=>{if(e.button===2){drag=true;lastX=e.clientX;lastY=e.clientY}});addEventListener('pointerup',()=>drag=false);addEventListener('pointermove',e=>{if(drag){camera.position.x-=(e.clientX-lastX)*.045;camera.position.z+=(e.clientY-lastY)*.045;lastX=e.clientX;lastY=e.clientY}});renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());renderer.domElement.addEventListener('wheel',e=>{camera.position.multiplyScalar(e.deltaY>0?1.08:.92);const distance=camera.position.length();if(distance<13)camera.position.setLength(13);if(distance>75)camera.position.setLength(75)},{passive:true});
-let last=0;function animate(t){requestAnimationFrame(animate);const dt=Math.min((t-last)/1000,.05);last=t;if(!paused){villagers.forEach(v=>{const p=v.userData;p.phase+=dt*p.speed;v.position.x+=Math.sin(p.phase*.4)*dt*.25;v.position.z+=Math.cos(p.phase*.4)*dt*.25;p.leg1.rotation.x=Math.sin(p.phase*5)*.5;p.leg2.rotation.x=-Math.sin(p.phase*5)*.5});sun.position.x=Math.sin(t*.000025)*30-15;water.material.opacity=.82+Math.sin(t*.001)*.06}camera.lookAt(0,0,0);renderer.render(scene,camera)}requestAnimationFrame(animate);
-setInterval(()=>{if(!paused&& !document.querySelector('#mainmenu').classList.contains('hidden'))return;if(!paused){day++;food=Math.max(0,food-pop);if(day%3===0)logs+=3;updateHud();document.querySelector('#status').textContent=food===0?'¡La aldea se está quedando sin alimentos!':'La aldea sigue trabajando.'}},30000);
-addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+
+const $ = (selector) => document.querySelector(selector);
+const root = $('#game');
+const world = createWorld(root);
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+const target = new THREE.Vector3(0, 0, 0);
+let state = newGame();
+let selectedId = null;
+let buildMode = null;
+let gameActive = false;
+let paused = false;
+let menuOpen = true;
+let gameSpeed = 1;
+let dayClock = 0;
+let lastFrame = 0;
+let toastTimer = 0;
+let dragging = false;
+let dragX = 0;
+let dragY = 0;
+let lastStatus = '';
+
+const BUILD_LABELS = {
+  house: 'Casa campesina',
+  farm: 'Granja',
+  sawmill: 'Aserradero',
+  quarry: 'Cantera',
+  tower: 'Torre de guardia',
+  market: 'Mercado',
+  well: 'Pozo'
+};
+
+const BUILD_DESC = {
+  house: 'Aumenta la capacidad de alojamiento en seis habitantes.',
+  farm: 'Cultiva alimentos. Su rendimiento cambia con las estaciones.',
+  sawmill: 'Produce madera para ampliar la aldea.',
+  quarry: 'Extrae piedra para edificios defensivos y servicios.',
+  tower: 'Vigila los caminos y refuerza la defensa del asentamiento.',
+  market: 'Genera oro y mejora el ánimo de los habitantes.',
+  well: 'Asegura un punto de agua y mejora la vida de la aldea.'
+};
+
+function notify(message, important = false) {
+  $('#status').textContent = message;
+  if (important) {
+    $('#toast').textContent = message;
+    $('#toast').classList.add('visible');
+    window.clearTimeout(toastTimer);
+    toastTimer = window.setTimeout(() => $('#toast').classList.remove('visible'), 3400);
+  }
+}
+
+function updateHud() {
+  const season = seasonForDay(state.day);
+  $('#food').textContent = Math.floor(state.food);
+  $('#wood').textContent = Math.floor(state.wood);
+  $('#stone').textContent = Math.floor(state.stone);
+  $('#gold').textContent = Math.floor(state.gold);
+  $('#people').textContent = state.population;
+  $('#housing').textContent = housingCapacity(state);
+  $('#season').textContent = season;
+  $('#day').textContent = 'Día ' + state.day;
+  $('#freeWorkers').textContent = freeWorkers(state);
+  $('#morale').style.width = state.morale + '%';
+  $('#moraleValue').textContent = Math.round(state.morale) + '%';
+  $('#continue').disabled = !saveKeyExists();
+  $('#continue').classList.toggle('disabled', !saveKeyExists());
+  document.querySelectorAll('[data-build]').forEach((button) => {
+    const type = button.dataset.build;
+    const cost = BUILDINGS[type].cost;
+    const enough = canAfford(state, type);
+    button.classList.toggle('unaffordable', !enough);
+    const costEl = button.querySelector('.cost');
+    if (costEl) costEl.textContent = cost.wood + '🪵  ' + cost.stone + '🪨';
+  });
+}
+
+function addWorldBuildings() {
+  world.clearBuildings();
+  state.buildings.forEach((building) => world.addBuilding(building));
+  world.setPopulation(state.population);
+  world.setJobs(state.buildings);
+}
+
+function setPaused(value) {
+  paused = value;
+  $('#pause').textContent = paused ? '▶ Reanudar' : 'Ⅱ Pausar';
+  $('#pause').classList.toggle('active', paused);
+}
+
+function startSession(nextState, message) {
+  state = nextState;
+  selectedId = null;
+  buildMode = null;
+  dayClock = 0;
+  gameActive = true;
+  menuOpen = false;
+  $('#mainmenu').classList.add('hidden');
+  $('#hud').classList.remove('hidden');
+  $('#inspector').classList.add('hidden');
+  world.hideGhost();
+  setPaused(false);
+  addWorldBuildings();
+  updateHud();
+  notify(message, true);
+}
+
+function startNewGame() {
+  startSession(newGame(), 'Un nuevo capítulo comienza en el valle de Valdemar.');
+}
+
+function continueGame() {
+  const saved = loadGame();
+  if (!saved) {
+    notify('No se encontró una partida válida. Comienza una nueva.', true);
+    startNewGame();
+    return;
+  }
+  startSession(saved, 'Partida recuperada. El reino continúa donde lo dejaste.');
+}
+
+function openMenu() {
+  if (gameActive) setPaused(true);
+  menuOpen = true;
+  $('#mainmenu').classList.remove('hidden');
+  $('#hud').classList.add('hidden');
+  $('#resume').classList.toggle('hidden', !gameActive);
+  $('#continue').disabled = !saveKeyExists();
+}
+
+function closeMenu() {
+  menuOpen = false;
+  $('#mainmenu').classList.add('hidden');
+  if (gameActive) {
+    $('#hud').classList.remove('hidden');
+    setPaused(false);
+  }
+}
+
+function saveCurrentGame() {
+  const ok = saveGame(state);
+  notify(ok ? 'Partida guardada correctamente en este equipo.' : 'No se pudo guardar. Comprueba el almacenamiento del navegador.', true);
+  updateHud();
+}
+
+function findBuilding(id) {
+  return state.buildings.find((building) => building.id === id) || null;
+}
+
+function inspectBuilding(id) {
+  const building = findBuilding(id);
+  if (!building) {
+    selectedId = null;
+    $('#inspector').classList.add('hidden');
+    return;
+  }
+  selectedId = id;
+  const spec = BUILDINGS[building.kind];
+  const panel = $('#inspector');
+  panel.classList.remove('hidden');
+  $('#inspectTitle').textContent = BUILD_LABELS[building.kind];
+  $('#inspectDescription').textContent = BUILD_DESC[building.kind];
+  $('#inspectLevel').textContent = building.permanent ? 'Edificio fundador' : 'Construcción de la aldea';
+  $('#inspectWorkers').textContent = building.workers + ' / ' + spec.slots;
+  $('#inspectCapacity').textContent = spec.housing ? '+' + spec.housing + ' plazas' : (spec.slots ? spec.slots + ' puestos' : 'Servicio comunitario');
+  $('#workerPlus').disabled = building.workers >= spec.slots || freeWorkers(state) <= 0;
+  $('#workerMinus').disabled = building.workers <= 0;
+  $('#demolish').disabled = building.permanent;
+  $('#demolish').textContent = building.permanent ? 'Edificio fundador' : 'Demoler edificio';
+}
+
+function refreshJobs() {
+  world.setJobs(state.buildings);
+  updateHud();
+  if (selectedId !== null) inspectBuilding(selectedId);
+}
+
+function onWorkerChange(change) {
+  if (selectedId === null) return;
+  const result = changeWorkers(state, selectedId, change);
+  notify(result.message, !result.ok);
+  if (result.ok) refreshJobs();
+  else inspectBuilding(selectedId);
+}
+
+function onDemolish() {
+  if (selectedId === null) return;
+  const id = selectedId;
+  const result = demolishBuilding(state, id);
+  if (!result.ok) {
+    notify(result.message, true);
+    return;
+  }
+  const mesh = world.buildings.find((item) => item.userData.buildingData.id === id);
+  if (mesh) world.removeBuilding(mesh);
+  selectedId = null;
+  $('#inspector').classList.add('hidden');
+  refreshJobs();
+  notify(result.message, true);
+}
+
+function pointerRay(event) {
+  const rect = world.renderer.domElement.getBoundingClientRect();
+  pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(pointer, world.camera);
+}
+
+function getTerrainPoint(event) {
+  pointerRay(event);
+  const hits = raycaster.intersectObject(world.ground, false);
+  return hits.length ? hits[0].point : null;
+}
+
+function snappedPosition(point) {
+  return {
+    x: Math.round(point.x * 2) / 2,
+    z: Math.round(point.z * 2) / 2
+  };
+}
+
+function updateBuildPreview(event) {
+  if (!buildMode || menuOpen || !gameActive) return;
+  const point = getTerrainPoint(event);
+  if (!point) {
+    world.hideGhost();
+    return;
+  }
+  const place = snappedPosition(point);
+  const result = canPlace(state, buildMode, place.x, place.z);
+  const affordable = canAfford(state, buildMode);
+  world.showGhost(place.x, place.z, result.valid && affordable, buildMode);
+}
+
+function placeSelectedBuilding(event) {
+  const point = getTerrainPoint(event);
+  if (!point || !buildMode) return;
+  const place = snappedPosition(point);
+  const result = placeBuilding(state, buildMode, place.x, place.z);
+  if (!result.ok) {
+    notify(result.message, true);
+    updateBuildPreview(event);
+    return;
+  }
+  world.addBuilding(result.building);
+  world.hideGhost();
+  buildMode = null;
+  refreshJobs();
+  notify(result.message, true);
+}
+
+function selectWorldBuilding(event) {
+  pointerRay(event);
+  const meshes = raycaster.intersectObjects(world.buildings, true);
+  for (const hit of meshes) {
+    let current = hit.object;
+    while (current && !current.userData.isBuilding) current = current.parent;
+    if (current?.userData.isBuilding) {
+      inspectBuilding(current.userData.buildingData.id);
+      return true;
+    }
+  }
+  inspectBuilding(null);
+  return false;
+}
+
+function activateBuild(type) {
+  if (!gameActive) return;
+  buildMode = type;
+  inspectBuilding(null);
+  const cost = BUILDINGS[type].cost;
+  notify('Modo de construcción: ' + BUILD_LABELS[type] + '. Coste: ' + cost.wood + ' madera y ' + cost.stone + ' piedra.');
+  world.showGhost(0, 0, canAfford(state, type), type);
+}
+
+function advanceSimulationDay() {
+  const result = advanceDay(state);
+  world.setPopulation(state.population);
+  world.setJobs(state.buildings);
+  updateHud();
+  const report = 'Día ' + state.day + ': +' + result.foodProduced.toFixed(0) + ' comida, -' + result.foodConsumed.toFixed(0) +
+    ' consumida, +' + result.woodProduced.toFixed(0) + ' madera, +' + result.stoneProduced.toFixed(0) + ' piedra.';
+  notify(report);
+  if (state.notices[0] && state.notices[0] !== lastStatus) {
+    lastStatus = state.notices[0];
+    notify(state.notices[0], true);
+  }
+  if (state.morale <= 0 || state.population <= 1) {
+    setPaused(true);
+    notify('La aldea está al borde del colapso. Reorganiza la producción y las reservas.', true);
+  }
+}
+
+$('#newGame').addEventListener('click', startNewGame);
+$('#continue').addEventListener('click', continueGame);
+$('#resume').addEventListener('click', closeMenu);
+$('#menuBtn').addEventListener('click', openMenu);
+$('#options').addEventListener('click', () => $('#optionsBox').classList.toggle('hidden'));
+$('#pause').addEventListener('click', () => setPaused(!paused));
+$('#save').addEventListener('click', saveCurrentGame);
+$('#workerPlus').addEventListener('click', () => onWorkerChange(1));
+$('#workerMinus').addEventListener('click', () => onWorkerChange(-1));
+$('#demolish').addEventListener('click', onDemolish);
+$('#quality').addEventListener('change', (event) => world.setQuality(event.target.value));
+$('#shadows').addEventListener('change', (event) => {
+  world.renderer.shadowMap.enabled = event.target.checked;
+  world.renderer.shadowMap.needsUpdate = true;
+});
+$('#fullscreen').addEventListener('click', () => {
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+  else document.exitFullscreen?.();
+});
+$('#centerCamera').addEventListener('click', () => {
+  target.set(0, 0, 0);
+  world.camera.position.set(31, 32, 39);
+});
+document.querySelectorAll('[data-build]').forEach((button) => {
+  button.addEventListener('click', () => activateBuild(button.dataset.build));
+});
+$('#mainmenu').addEventListener('click', (event) => {
+  if (event.target === $('#mainmenu') && gameActive) closeMenu();
+});
+
+world.renderer.domElement.addEventListener('pointermove', (event) => {
+  updateBuildPreview(event);
+  if (!dragging) return;
+  const dx = event.clientX - dragX;
+  const dy = event.clientY - dragY;
+  world.camera.position.x -= dx * 0.055;
+  world.camera.position.z += dy * 0.055;
+  target.x -= dx * 0.055;
+  target.z += dy * 0.055;
+  dragX = event.clientX;
+  dragY = event.clientY;
+});
+world.renderer.domElement.addEventListener('pointerdown', (event) => {
+  if (event.button === 2) {
+    dragging = true;
+    dragX = event.clientX;
+    dragY = event.clientY;
+    world.renderer.domElement.setPointerCapture?.(event.pointerId);
+    return;
+  }
+  if (event.button !== 0 || !gameActive || menuOpen) return;
+  if (buildMode) placeSelectedBuilding(event);
+  else selectWorldBuilding(event);
+});
+world.renderer.domElement.addEventListener('pointerup', () => { dragging = false; });
+world.renderer.domElement.addEventListener('pointercancel', () => { dragging = false; });
+world.renderer.domElement.addEventListener('contextmenu', (event) => event.preventDefault());
+world.renderer.domElement.addEventListener('wheel', (event) => {
+  const offset = world.camera.position.clone().sub(target);
+  const factor = event.deltaY > 0 ? 1.09 : 0.92;
+  offset.multiplyScalar(factor);
+  const distance = THREE.MathUtils.clamp(offset.length(), 13, 88);
+  offset.setLength(distance);
+  world.camera.position.copy(target).add(offset);
+}, { passive: true });
+
+window.addEventListener('keydown', (event) => {
+  if (event.code === 'Escape') {
+    if (buildMode) {
+      buildMode = null;
+      world.hideGhost();
+      notify('Construcción cancelada.');
+    } else if (menuOpen && gameActive) closeMenu();
+    else if (!menuOpen) openMenu();
+  }
+  if (event.code === 'Space' && gameActive && !menuOpen) {
+    event.preventDefault();
+    setPaused(!paused);
+  }
+  if (event.key.toLowerCase() === 'b' && gameActive && !menuOpen) {
+    $('#buildPanel').classList.toggle('collapsed');
+  }
+  if (event.key.toLowerCase() === 's' && (event.ctrlKey || event.metaKey)) {
+    event.preventDefault();
+    saveCurrentGame();
+  }
+});
+
+function frame(time) {
+  requestAnimationFrame(frame);
+  const dt = Math.min((time - lastFrame) / 1000 || 0, 0.05);
+  lastFrame = time;
+  if (gameActive && !paused && !menuOpen) {
+    dayClock += dt * gameSpeed;
+    if (dayClock >= 42) {
+      dayClock -= 42;
+      advanceSimulationDay();
+    }
+  }
+  world.update(dt, time / 1000, dayClock / 42);
+  world.camera.lookAt(target);
+  world.render();
+}
+requestAnimationFrame(frame);
+
+$('#speed').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-speed]');
+  if (!button) return;
+  gameSpeed = Number(button.dataset.speed);
+  document.querySelectorAll('[data-speed]').forEach((item) => item.classList.toggle('selected', item === button));
+});
+window.addEventListener('resize', () => {
+  world.camera.aspect = window.innerWidth / window.innerHeight;
+  world.camera.updateProjectionMatrix();
+  world.renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
 updateHud();
+setPaused(false);
+if (saveKeyExists()) $('#continue').disabled = false;
