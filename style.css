@@ -94,6 +94,11 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 .morale-label { margin-top: 10px; margin-bottom: 5px; }
 .morale-track { height: 5px; background: #090d09; border: 1px solid #4a4935; }
 .morale-track i { display: block; height: 100%; width: 78%; background: linear-gradient(90deg, #987247, #c5b36c); transition: width .3s ease; }
+.wildlife-meter { margin: 10px 1px 0; color: #aaa48f; font-size: 9px; }
+.wildlife-meter > div { display: flex; justify-content: space-between; margin-bottom: 5px; }
+.wildlife-meter b { color: #c6c18d; }
+.wildlife-meter > i { display: block; height: 5px; background: #090d09; border: 1px solid #4a4935; }
+.wildlife-meter > i span { display: block; height: 100%; width: 100%; background: linear-gradient(90deg, #657b43, #a2a76b); transition: width .3s ease; }
 .logistics-display { display: flex; flex-direction: column; gap: 5px; margin: 10px 1px 0; padding: 8px 9px; background: rgba(5, 9, 6, .36); border: 1px solid rgba(180, 149, 94, .18); color: #aaa48f; font-size: 9px; }
 .logistics-display b { color: #d2bc87; font: 600 10px Inter, sans-serif; letter-spacing: .02em; }
 .control-hint { color: #8e8e7d; font-size: 9px; line-height: 1.65; margin: 11px 1px 0; }
