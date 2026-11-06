@@ -151,7 +151,7 @@ export function advanceDay(state) {
 
   if (state.day % 12 === 0) {
     const nextSeason = seasonForDay(state.day + 1);
-    state.notices.unshift('El invierno se acerca: prepara comida y leña.' && nextSeason === 'Invierno'
+    state.notices.unshift(nextSeason === 'Invierno'
       ? 'Llega el invierno. Las cosechas serán mucho más escasas.'
       : 'Las estaciones cambian. Revisa las reservas del reino.');
   } else if (foodProduced + woodProduced + stoneProduced + goldProduced > 0) {
@@ -197,7 +197,7 @@ export function loadGame() {
         x: Number(b.x) || 0,
         z: Number(b.z) || 0,
         workers: Math.max(0, Math.min(BUILDINGS[b.kind].slots, Number(b.workers) || 0)),
-        permanent: Boolean(b.permanent),
+        permanent: Boolean(b.permanent ?? index < 5),
         rotation: Number(b.rotation) || 0
       })),
       nextBuildingId: Math.max(Number(saved.nextBuildingId) || 1, ...saved.buildings.map((b) => (Number(b?.id) || 0) + 1))
