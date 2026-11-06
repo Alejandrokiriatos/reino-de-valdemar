@@ -3,7 +3,7 @@ import { createWorld, terrainHeight } from './world.js';
 import {
   BUILDINGS, SEASONS, newGame, housingCapacity, storageCapacity, storedResources, livestockCapacity, assignedWorkers, freeWorkers,
   seasonForDay, weatherForDay, canAfford, canPlace, placeBuilding, changeWorkers, demolishBuilding, buyLivestock, fertilizeFarm,
-  advanceDay, saveGame, loadGame, saveKeyExists
+  advanceDay, saveGame, loadGame, saveKeyExists, tradeWithCaravan
 } from './simulation.js';
 import './world.css';
 
@@ -88,6 +88,66 @@ function updateForecast() {
   }
 }
 
+function updateCaravanPanel() {
+  const button = $('#caravanToggle');
+  const status = $('#caravanStatus');
+  const rows = $('#caravanRows');
+  const caravan = state.caravan;
+  const active = Boolean(caravan && caravan.daysLeft > 0);
+  button.classList.toggle('available', active);
+  button.title = active
+    ? 'Caravana disponible · ' + caravan.daysLeft + ' día(s) restantes'
+    : 'Próxima caravana: día ' + (state.nextCaravanDay || state.day + 1);
+  status.textContent = active
+    ? 'Mercaderes en el valle · ' + caravan.daysLeft + ' día(s) antes de partir'
+    : 'Próxima visita: día ' + (state.nextCaravanDay || state.day + 1);
+  rows.replaceChildren();
+  const resources = [
+    ['food', '🌾', 'Alimentos'],
+    ['wood', '🪵', 'Madera'],
+    ['stone', '🪨', 'Piedra'],
+    ['manure', '🪴', 'Abono']
+  ];
+  const winter = seasonForDay(state.day) === 'Invierno';
+  const baseBuy = { food: winter ? 3 : 2, wood: winter ? 3 : 2, stone: 3, manure: 2 };
+  for (const [key, icon, label] of resources) {
+    const buyPrice = caravan?.prices?.buy?.[key] || baseBuy[key];
+    const sellPrice = caravan?.prices?.sell?.[key] || Math.max(1, Math.floor(baseBuy[key] * 0.6));
+    const merchantStock = Math.max(0, Number(caravan?.stock?.[key]) || 0);
+    const ownStock = Math.floor(state[key] || 0);
+    const card = document.createElement('div');
+    card.className = 'trade-row';
+    const details = document.createElement('div');
+    details.className = 'trade-details';
+    const title = document.createElement('b');
+    title.textContent = icon + ' ' + label;
+    const quantity = document.createElement('small');
+    quantity.textContent = 'Mercader: ' + merchantStock + ' · Tu almacén: ' + ownStock;
+    const prices = document.createElement('small');
+    prices.textContent = 'Compra ' + buyPrice + ' oro/u. · Venta ' + sellPrice + ' oro/u.';
+    details.append(title, quantity, prices);
+    const actions = document.createElement('div');
+    actions.className = 'trade-actions';
+    const buy = document.createElement('button');
+    buy.type = 'button';
+    buy.dataset.trade = 'buy';
+    buy.dataset.resource = key;
+    buy.textContent = 'Comprar 10';
+    buy.disabled = !active || merchantStock < 10 || state.gold < buyPrice * 10
+      || storedResources(state) - buyPrice * 10 + 10 > storageCapacity(state);
+    const sell = document.createElement('button');
+    sell.type = 'button';
+    sell.dataset.trade = 'sell';
+    sell.dataset.resource = key;
+    sell.textContent = 'Vender 10';
+    sell.disabled = !active || ownStock < 10
+      || storedResources(state) - 10 + sellPrice * 10 > storageCapacity(state);
+    actions.append(buy, sell);
+    card.append(details, actions);
+    rows.append(card);
+  }
+}
+
 function notify(message, important = false) {
   $('#status').textContent = message;
   if (important) {
@@ -130,6 +190,7 @@ function updateHud() {
   $('#moraleValue').textContent = Math.round(state.morale) + '%';
   $('#continue').disabled = !saveKeyExists();
   $('#continue').classList.toggle('disabled', !saveKeyExists());
+  updateCaravanPanel();
   document.querySelectorAll('[data-build]').forEach((button) => {
     const type = button.dataset.build;
     const cost = BUILDINGS[type].cost;
@@ -146,6 +207,7 @@ function addWorldBuildings() {
   world.setPopulation(state.population, true);
   world.setJobs(state.buildings);
   world.setLivestock(state.livestock);
+  world.setCaravan(state.caravan);
   const initialStockpiles = state.stockpiles || {
     food: Math.ceil(state.food / 24),
     wood: Math.ceil(state.wood / 12),
@@ -414,6 +476,7 @@ function advanceSimulationDay() {
   world.setJobs(state.buildings);
   updateHud();
   world.setLivestock(state.livestock);
+  world.setCaravan(state.caravan);
   const report = 'Día ' + state.day + ': +' + result.foodStored.toFixed(0) + ' comida, +' + result.manureStored.toFixed(0) +
     ' abono almacenado, -' + result.totalFoodConsumed.toFixed(0) + ' alimento consumido, +' + result.woodStored.toFixed(0) +
     ' madera, +' + result.stoneStored.toFixed(0) + ' piedra.';
@@ -444,12 +507,34 @@ $('#continue').addEventListener('click', continueGame);
 $('#resume').addEventListener('click', closeMenu);
 $('#menuBtn').addEventListener('click', openMenu);
 $('#options').addEventListener('click', () => $('#optionsBox').classList.toggle('hidden'));
-$('#forecastToggle').addEventListener('click', () => $('#forecastPanel').classList.toggle('hidden'));
+$('#forecastToggle').addEventListener('click', () => {
+  $('#caravanPanel').classList.add('hidden');
+  $('#forecastPanel').classList.toggle('hidden');
+});
+$('#caravanToggle').addEventListener('click', () => {
+  const panel = $('#caravanPanel');
+  const opening = panel.classList.contains('hidden');
+  $('#forecastPanel').classList.add('hidden');
+  panel.classList.toggle('hidden', !opening);
+  updateCaravanPanel();
+});
+$('#caravanClose').addEventListener('click', () => $('#caravanPanel').classList.add('hidden'));
+$('#caravanRows').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-trade]');
+  if (!button || button.disabled) return;
+  const result = tradeWithCaravan(state, button.dataset.trade, button.dataset.resource, 10);
+  notify(result.message, true);
+  if (result.ok) {
+    updateHud();
+    saveCurrentGame();
+  } else updateCaravanPanel();
+});
 $('#forecastClose').addEventListener('click', () => $('#forecastPanel').classList.add('hidden'));
 document.addEventListener('pointerdown', (event) => {
-  const panel = $('#forecastPanel');
-  if (panel.classList.contains('hidden')) return;
-  if (!panel.contains(event.target) && !$('#forecastToggle').contains(event.target)) panel.classList.add('hidden');
+  const forecast = $('#forecastPanel');
+  const caravan = $('#caravanPanel');
+  if (!forecast.classList.contains('hidden') && !forecast.contains(event.target) && !$('#forecastToggle').contains(event.target)) forecast.classList.add('hidden');
+  if (!caravan.classList.contains('hidden') && !caravan.contains(event.target) && !$('#caravanToggle').contains(event.target)) caravan.classList.add('hidden');
 });
 $('#pause').addEventListener('click', () => setPaused(!paused));
 $('#save').addEventListener('click', saveCurrentGame);

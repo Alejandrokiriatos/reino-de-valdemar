@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   newGame, housingCapacity, storageCapacity, storedResources, livestockCapacity, freeWorkers, canPlace, placeBuilding,
-  changeWorkers, buyLivestock, fertilizeFarm, demolishBuilding, advanceDay, seasonForDay, weatherForDay, loadGame
+  changeWorkers, buyLivestock, fertilizeFarm, demolishBuilding, advanceDay, seasonForDay, weatherForDay, loadGame, tradeWithCaravan
 } from '../src/simulation.js';
 
 test('a new settlement starts with consistent population and housing', () => {
@@ -237,4 +237,69 @@ test('a staffed stable breeds cattle when there is feed and open corral space', 
   for (let day = 0; day < 11; day++) advanceDay(state);
   assert.equal(state.day, 12);
   assert.equal(state.livestock, 3);
+});
+
+
+test('a merchant caravan arrives on its scheduled day and stays for three days', () => {
+  const state = newGame();
+  for (let day = 0; day < 4; day++) advanceDay(state);
+  assert.equal(state.day, 5);
+  assert.ok(state.caravan);
+  assert.equal(state.caravan.daysLeft, 3);
+  assert.equal(state.caravanVisits, 1);
+  assert.ok(state.notices.some((notice) => notice.includes('caravana mercante')));
+  advanceDay(state);
+  assert.equal(state.caravan.daysLeft, 2);
+  advanceDay(state);
+  assert.equal(state.caravan.daysLeft, 1);
+  advanceDay(state);
+  assert.equal(state.caravan, null);
+  assert.equal(state.nextCaravanDay, 13);
+});
+
+test('the caravan supports buying and selling goods with correct stock and gold changes', () => {
+  const state = newGame();
+  for (let day = 0; day < 4; day++) advanceDay(state);
+  const merchant = state.caravan;
+  const goldBefore = state.gold;
+  const foodBefore = state.food;
+  const merchantFoodBefore = merchant.stock.food;
+  const buyPrice = merchant.prices.buy.food;
+  const purchase = tradeWithCaravan(state, 'buy', 'food', 10);
+  assert.equal(purchase.ok, true);
+  assert.equal(state.food, foodBefore + 10);
+  assert.equal(state.gold, goldBefore - buyPrice * 10);
+  assert.equal(merchant.stock.food, merchantFoodBefore - 10);
+
+  const woodBefore = state.wood;
+  const merchantWoodBefore = merchant.stock.wood;
+  const saleGoldBefore = state.gold;
+  const sellPrice = merchant.prices.sell.wood;
+  const sale = tradeWithCaravan(state, 'sell', 'wood', 10);
+  assert.equal(sale.ok, true);
+  assert.equal(state.wood, woodBefore - 10);
+  assert.equal(state.gold, saleGoldBefore + sellPrice * 10);
+  assert.equal(merchant.stock.wood, merchantWoodBefore + 10);
+});
+
+test('trade rejects unavailable caravans, insufficient gold, stock, goods and storage space', () => {
+  const state = newGame();
+  assert.equal(tradeWithCaravan(state, 'buy', 'food', 10).ok, false);
+  state.caravan = {
+    arrivedDay: 1, daysLeft: 2,
+    stock: { food: 5, wood: 20, stone: 20, manure: 20 },
+    prices: { buy: { food: 2, wood: 2, stone: 3, manure: 2 }, sell: { food: 1, wood: 1, stone: 1, manure: 1 } }
+  };
+  assert.equal(tradeWithCaravan(state, 'buy', 'food', 10).ok, false);
+  state.gold = 0;
+  assert.equal(tradeWithCaravan(state, 'buy', 'wood', 10).ok, false);
+  state.gold = 35;
+  state.wood = 0;
+  assert.equal(tradeWithCaravan(state, 'sell', 'wood', 10).ok, false);
+  state.food = 640;
+  state.wood = 0;
+  state.stone = 0;
+  state.gold = 0;
+  state.manure = 0;
+  assert.equal(tradeWithCaravan(state, 'buy', 'wood', 10).ok, false);
 });

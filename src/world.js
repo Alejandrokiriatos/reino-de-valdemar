@@ -808,6 +808,8 @@ export function createWorld(root) {
   const bridgeRoadPaths = new Set();
   const buildingRoads = new Map();
   const villagers = [];
+  const caravanVisitors = [];
+  let caravanVisible = false;
   const deer = [];
   const livestock = [];
   let livestockStableId = null;
@@ -1358,6 +1360,37 @@ export function createWorld(root) {
     }
   }
 
+  function setCaravan(caravan) {
+    const visible = Boolean(caravan && Number(caravan.daysLeft) > 0);
+    if (visible && caravanVisitors.length === 0) {
+      for (let index = 0; index < 2; index++) {
+        const visitor = makeVillager(scene, 70 + index, palette);
+        const p = visitor.userData;
+        p.working = false;
+        p.state = 'wandering';
+        p.cart.visible = true;
+        p.cargo.visible = true;
+        p.cargoParts.sack.visible = true;
+        p.wait = 999;
+        caravanVisitors.push(visitor);
+      }
+    }
+    caravanVisible = visible;
+    caravanVisitors.forEach((visitor, index) => {
+      visitor.visible = visible;
+      if (!visible) return;
+      const x = index === 0 ? -2.8 : 1.4;
+      const z = -22.8 - index * 1.35;
+      visitor.position.set(x, terrainHeight(x, z), z);
+      visitor.rotation.y = index === 0 ? 0.12 : -0.16;
+      const p = visitor.userData;
+      p.phase = index * 1.7;
+      p.cart.visible = true;
+      p.cargo.visible = true;
+      p.cargoParts.sack.visible = true;
+    });
+  }
+
   function setJobs(data) {
     const assignments = [];
     data.forEach((building) => {
@@ -1547,6 +1580,16 @@ export function createWorld(root) {
       });
     });
 
+    if (caravanVisible) {
+      caravanVisitors.forEach((person, index) => {
+        const p = person.userData;
+        p.phase += dt * 1.1;
+        p.torso.rotation.z = Math.sin(elapsed * 1.7 + index) * 0.025;
+        p.armL.rotation.x = -0.08 + Math.sin(elapsed * 1.35 + index) * 0.035;
+        p.armR.rotation.x = -0.08 - Math.sin(elapsed * 1.35 + index) * 0.035;
+      });
+    }
+
     villagers.forEach((person) => {
       const p = person.userData;
       p.phase += dt * p.speed;
@@ -1662,7 +1705,7 @@ export function createWorld(root) {
 
   return {
     scene, camera, renderer, ground, buildings, villagers, addBuilding, removeBuilding,
-    clearBuildings, setPopulation, setJobs, setLivestock, update, showGhost, hideGhost,
+    clearBuildings, setPopulation, setJobs, setLivestock, setCaravan, update, showGhost, hideGhost,
     getDeliveryCounts: () => ({ ...deliveryCounts }),
     setDeliveryCounts,
     setQuality, render: () => renderer.render(scene, camera), addRoad: addRoadPath

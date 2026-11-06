@@ -177,6 +177,37 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 .forecast-day em { display: block; margin-top: 5px; color: #979989; font-size: 8px; font-style: normal; line-height: 1.3; }
 .forecast-popover > p { margin: 10px 1px 0; color: #969787; font-size: 9px; line-height: 1.5; }
 
+.caravan-toggle { color: #d8c58e; font-size: 17px; }
+.caravan-toggle.available { color: #f1d58d; border-color: #c3a25f; box-shadow: 0 0 13px rgba(208, 174, 96, .23), inset 0 0 8px rgba(208, 174, 96, .12); }
+.caravan-panel {
+  position: fixed; z-index: 13; top: 91px; right: 72px; width: min(390px, calc(100vw - 40px));
+  max-height: calc(100vh - 112px); overflow-y: auto; padding: 14px;
+  background: linear-gradient(145deg, rgba(25, 30, 24, .985), rgba(12, 17, 13, .985));
+  border: 1px solid rgba(190, 158, 96, .62); box-shadow: 0 15px 42px #000b, inset 0 0 0 4px rgba(211, 181, 121, .025);
+  backdrop-filter: blur(10px);
+}
+.caravan-heading { display: flex; align-items: center; justify-content: space-between; padding-bottom: 10px; border-bottom: 1px solid rgba(180, 149, 94, .23); }
+.caravan-heading small { display: block; color: #ae986b; font-size: 8px; letter-spacing: .16em; }
+.caravan-heading b { display: block; margin-top: 4px; color: #eee4cd; font: 600 15px Cinzel, Georgia, serif; }
+.caravan-heading button { min-width: 27px; width: 27px; height: 27px; padding: 0; font-size: 18px; }
+.caravan-status { margin: 10px 1px; color: #d0bd8d; font-size: 10px; }
+.caravan-rows { display: flex; flex-direction: column; gap: 7px; }
+.trade-row { display: flex; align-items: center; justify-content: space-between; gap: 9px; padding: 9px; background: rgba(5, 9, 6, .48); border: 1px solid rgba(174, 142, 82, .2); }
+.trade-details { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.trade-details b { color: #e7ddc8; font: 600 11px Cinzel, Georgia, serif; }
+.trade-details small { color: #a9a28e; font-size: 8px; line-height: 1.35; }
+.trade-actions { flex: 0 0 102px; display: flex; flex-direction: column; gap: 4px; }
+.trade-actions button { min-height: 26px; padding: 5px 6px; color: #dfd0a8; background: rgba(105, 87, 51, .3); border: 1px solid rgba(185, 151, 91, .38); font-size: 8px; }
+.trade-actions button:hover:not(:disabled) { background: rgba(135, 109, 60, .48); }
+.trade-actions button:disabled { opacity: .35; cursor: not-allowed; }
+.caravan-footnote { margin: 10px 1px 0; color: #8f927f; font-size: 8px; line-height: 1.5; }
+@media (max-width: 760px) {
+  .caravan-panel { top: 78px; right: 42px; width: min(370px, calc(100vw - 54px)); padding: 10px; }
+  .trade-row { gap: 5px; padding: 7px; }
+  .trade-actions { flex-basis: 88px; }
+  .trade-actions button { font-size: 7px; }
+}
+
 .menu-screen {
   position: fixed; z-index: 20; inset: 0; display: grid; place-items: center;
   background: linear-gradient(90deg, rgba(6, 10, 7, .9), rgba(7, 11, 8, .36) 65%, rgba(7, 10, 8, .56)),

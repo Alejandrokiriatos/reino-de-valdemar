@@ -28,6 +28,7 @@
       </div>
       <div class="realm-date"><span id="season">Primavera</span><i id="weather">☀ Despejado</i><b id="day">Día 1</b></div>
       <button id="forecastToggle" class="icon-button forecast-toggle" title="Pronóstico del valle" aria-label="Consultar el pronóstico">☷</button>
+      <button id="caravanToggle" class="icon-button caravan-toggle" title="Próxima caravana" aria-label="Consultar el comercio con caravanas">⚖</button>
       <button id="menuBtn" class="icon-button" title="Menú del reino" aria-label="Abrir menú">☰</button>
     </header>
 
@@ -112,6 +113,16 @@
     <p>Previsión de los próximos tres días. El clima puede alterar cosechas, pesca y desplazamientos.</p>
   </aside>
 
+  <aside id="caravanPanel" class="caravan-panel hidden">
+    <div class="caravan-heading">
+      <div><small>RUTA DE LOS MERCADERES</small><b>Comercio del reino</b></div>
+      <button id="caravanClose" aria-label="Cerrar comercio">×</button>
+    </div>
+    <p id="caravanStatus" class="caravan-status">Próxima visita: día 5</p>
+    <div id="caravanRows" class="caravan-rows"></div>
+    <p class="caravan-footnote">Cada operación mueve 10 unidades. Los precios cambian con las estaciones y la caravana tiene existencias limitadas.</p>
+  </aside>
+
   <section id="mainmenu" class="menu-screen">
     <div class="menu-atmosphere"></div>
     <div class="menu-card">
@@ -130,7 +141,7 @@
         </label>
         <label class="check-label"><input id="shadows" type="checkbox" checked> Sombras dinámicas</label>
       </div>
-      <small class="version">VERSIÓN 1.9.0 · DESARROLLO EN CURSO</small>
+      <small class="version">VERSIÓN 2.0.0 · DESARROLLO EN CURSO</small>
     </div>
     <div class="menu-quote">UN REINO NO SE HEREDA: SE CONSTRUYE.</div>
   </section>

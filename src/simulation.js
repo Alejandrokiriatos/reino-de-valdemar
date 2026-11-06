@@ -17,8 +17,11 @@ const SAVE_KEY = 'valdemar-save-v2';
 
 export function newGame() {
   return {
-    version: 2,
+    version: 3,
     day: 1,
+    nextCaravanDay: 5,
+    caravanVisits: 0,
+    caravan: null,
     food: 180,
     wood: 130,
     stone: 100,
@@ -166,6 +169,57 @@ export function buyLivestock(state, amount = 1) {
   return { ok: true, message: 'Ganado adquirido: ' + state.livestock + ' / ' + capacity + '.' };
 }
 
+function createCaravan(day) {
+  const winter = seasonForDay(day) === 'Invierno';
+  const buy = { food: winter ? 3 : 2, wood: winter ? 3 : 2, stone: 3, manure: 2 };
+  const sell = Object.fromEntries(Object.entries(buy).map(([key, price]) => [key, Math.max(1, Math.floor(price * 0.6))]));
+  return {
+    arrivedDay: day,
+    daysLeft: 3,
+    stock: {
+      food: 35 + (day % 3) * 5,
+      wood: 24 + (day % 4) * 3,
+      stone: 18 + (day % 5) * 2,
+      manure: 12 + (day % 3) * 2
+    },
+    prices: { buy, sell }
+  };
+}
+
+export function tradeWithCaravan(state, action, resource, amount = 10) {
+  const caravan = state.caravan;
+  const tradable = ['food', 'wood', 'stone', 'manure'];
+  if (!caravan || caravan.daysLeft <= 0) return { ok: false, message: 'No hay ninguna caravana comerciando en el valle.' };
+  if (!tradable.includes(resource)) return { ok: false, message: 'Esa mercancía no se puede comerciar.' };
+  const quantity = Math.max(1, Math.min(99, Math.floor(Number(amount) || 0)));
+  if (!['buy', 'sell'].includes(action)) return { ok: false, message: 'Operación comercial desconocida.' };
+  const price = Math.max(1, Number(caravan.prices?.[action]?.[resource]) || 1);
+  const total = quantity * price;
+  const capacity = storageCapacity(state);
+
+  if (action === 'buy') {
+    const merchantStock = Math.max(0, Number(caravan.stock?.[resource]) || 0);
+    if (merchantStock < quantity) return { ok: false, message: 'La caravana no tiene tantas unidades de esa mercancía.' };
+    if (state.gold < total) return { ok: false, message: 'No tienes oro suficiente para esa compra.' };
+    if (storedResources(state) - total + quantity > capacity) {
+      return { ok: false, message: 'No hay espacio libre en los almacenes para recibir esa mercancía.' };
+    }
+    state.gold -= total;
+    state[resource] += quantity;
+    caravan.stock[resource] -= quantity;
+    return { ok: true, message: 'Compra realizada: ' + quantity + ' unidades por ' + total + ' de oro.' };
+  }
+
+  if (state[resource] < quantity) return { ok: false, message: 'No tienes suficientes unidades para vender.' };
+  if (storedResources(state) - quantity + total > capacity) {
+    return { ok: false, message: 'No hay espacio en el almacén para guardar el oro de la venta.' };
+  }
+  state[resource] -= quantity;
+  state.gold += total;
+  caravan.stock[resource] = Math.max(0, Number(caravan.stock[resource]) || 0) + quantity;
+  return { ok: true, message: 'Venta realizada: ' + quantity + ' unidades por ' + total + ' de oro.' };
+}
+
 export function fertilizeFarm(state, buildingId) {
   const farm = state.buildings.find((building) => building.id === buildingId && building.kind === 'farm');
   if (!farm) return { ok: false, message: 'Selecciona una granja para abonarla.' };
@@ -212,6 +266,21 @@ export function advanceDay(state) {
   state.day += 1;
   const season = seasonForDay(state.day);
   const previousWeather = state.weather || weatherForDay(state.day - 1);
+  let caravanArrived = false;
+  if (state.caravan) {
+    state.caravan.daysLeft = Math.max(0, Number(state.caravan.daysLeft) - 1);
+    if (state.caravan.daysLeft <= 0) {
+      state.caravan = null;
+      state.nextCaravanDay = state.day + 5;
+      state.notices.unshift('La caravana recoge sus mercancías y abandona Valdemar.');
+    }
+  }
+  if (!state.caravan && state.day >= (Number(state.nextCaravanDay) || 5)) {
+    state.caravan = createCaravan(state.day);
+    state.caravanVisits = Math.max(0, Number(state.caravanVisits) || 0) + 1;
+    caravanArrived = true;
+    state.notices.unshift('¡Ha llegado una caravana mercante! Sus comerciantes permanecerán tres días en el valle.');
+  }
   const weather = weatherForDay(state.day, season);
   state.weather = weather;
   const seasonFactor = season === 'Invierno' ? 0.32 : season === 'Verano' ? 1.2 : season === 'Otoño' ? 0.92 : 1.08;
@@ -335,7 +404,7 @@ export function advanceDay(state) {
 
   state.notices = state.notices.slice(0, 8);
   return {
-    season, weather, previousWeather, cropWeatherFactor,
+    season, weather, previousWeather, cropWeatherFactor, caravanArrived, caravan: state.caravan,
     foodProduced, huntedFood, huntingWorkers, wildlife: state.wildlife,
     dairyProduced, manureProduced, manureStored, livestock: state.livestock,
     livestockCapacity: livestockCapacityNow, livestockFed, farmFertility: state.buildings.filter((building) => building.kind === 'farm').map((farm) => farm.fertility),
@@ -364,7 +433,19 @@ export function loadGame() {
     const state = {
       ...newGame(),
       ...saved,
+      version: 3,
       day: Math.max(1, Number(saved.day) || 1),
+      nextCaravanDay: Math.max(2, Math.floor(Number(saved.nextCaravanDay) || (Math.max(1, Number(saved.day) || 1) + 4))),
+      caravanVisits: Math.max(0, Math.floor(Number(saved.caravanVisits) || 0)),
+      caravan: saved.caravan && typeof saved.caravan === 'object' ? {
+        arrivedDay: Math.max(1, Math.floor(Number(saved.caravan.arrivedDay) || 1)),
+        daysLeft: Math.max(0, Math.min(3, Math.floor(Number(saved.caravan.daysLeft) || 0))),
+        stock: Object.fromEntries(['food', 'wood', 'stone', 'manure'].map((key) => [key, Math.max(0, Number(saved.caravan.stock?.[key]) || 0)])),
+        prices: {
+          buy: Object.fromEntries(['food', 'wood', 'stone', 'manure'].map((key) => [key, Math.max(1, Number(saved.caravan.prices?.buy?.[key]) || 2)])),
+          sell: Object.fromEntries(['food', 'wood', 'stone', 'manure'].map((key) => [key, Math.max(1, Number(saved.caravan.prices?.sell?.[key]) || 1)]))
+        }
+      } : null,
       food: Math.max(0, Number(saved.food) || 0),
       wood: Math.max(0, Number(saved.wood ?? saved.logs) || 0),
       stone: Math.max(0, Number(saved.stone ?? saved.rocks) || 0),

@@ -1,6 +1,6 @@
-# Reino de Valdemar — 1.9.0
+# Reino de Valdemar — 2.0.0
 
-Juego de estrategia y construcción medieval 3D creado desde cero con Three.js, Vite y Electron. La aldea ahora conecta agricultura y ganadería: el ganado necesita alimento y espacio, produce leche y abono, puede reproducirse y ayuda a recuperar la fertilidad de los campos.
+Juego de estrategia y construcción medieval 3D creado desde cero con Three.js, Vite y Electron. La versión 2.0 añade caravanas mercantes con visitas periódicas, inventario limitado y comercio de recursos, además de una carreta de comerciantes visible en el asentamiento. Agricultura y ganadería siguen conectadas: el ganado necesita alimento y espacio, produce leche y abono, puede reproducirse y ayuda a recuperar la fertilidad de los campos.
 
 ## Ejecutar en Windows
 
@@ -45,6 +45,9 @@ Para generar un ejecutable portable en Windows:
 - Patio de almacén con montones visibles de comida, madera, piedra, oro y abono; su cantidad se conserva al guardar y continuar.
 - Capacidad compartida de almacenamiento: los almacenes adicionales la amplían y la producción excedente se pierde si no hay espacio.
 - Establo y corral construibles, con vacas animadas que permanecen en el recinto.
+- Caravanas mercantes que visitan el valle en días programados, permanecen tres días y regresan tras un intervalo de viaje.
+- Comercio de alimentos, madera, piedra y abono con precios estacionales, existencias limitadas, compras y ventas en lotes de diez unidades.
+- Carreta y mercaderes visibles junto al camino mientras la caravana está en el valle; las visitas y existencias se conservan al guardar.
 - Ganado que necesita alimento, produce leche y abono, puede reproducirse y aumenta la demanda diaria de comida.
 - Compra de reses con oro y límites de capacidad por establo; no se puede retirar un establo si deja al ganado sin espacio.
 - Las granjas pierden fertilidad al cultivarse. El estiércol almacenado permite abonar los campos y recuperar su rendimiento.
@@ -58,7 +61,7 @@ Para generar un ejecutable portable en Windows:
 
 ## Validación
 
-Ejecuta `npm run check` para comprobar la sintaxis de los módulos y ejecutar las pruebas de economía, construcción, trabajadores, estaciones, caza, pesca, almacenamiento, clima, ganado y fertilidad de los campos.
+Ejecuta `npm run check` para comprobar la sintaxis de los módulos y ejecutar las pruebas de economía, construcción, trabajadores, estaciones, caza, pesca, almacenamiento, clima, ganado, fertilidad de los campos y comercio con caravanas.
 
 ## Estado del proyecto
 
