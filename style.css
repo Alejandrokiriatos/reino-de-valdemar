@@ -94,7 +94,11 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 .morale-label { margin-top: 10px; margin-bottom: 5px; }
 .morale-track { height: 5px; background: #090d09; border: 1px solid #4a4935; }
 .morale-track i { display: block; height: 100%; width: 78%; background: linear-gradient(90deg, #987247, #c5b36c); transition: width .3s ease; }
-.wildlife-meter { margin: 10px 1px 0; color: #aaa48f; font-size: 9px; }
+.storage-meter, .wildlife-meter { margin: 10px 1px 0; color: #aaa48f; font-size: 9px; }
+.storage-meter > div { display: flex; justify-content: space-between; margin-bottom: 5px; }
+.storage-meter b { color: #d5bd83; }
+.storage-meter > i { display: block; height: 5px; background: #090d09; border: 1px solid #4a4935; }
+.storage-meter > i span { display: block; height: 100%; width: 68%; background: linear-gradient(90deg, #8a7146, #c2a264); transition: width .3s ease; }
 .wildlife-meter > div { display: flex; justify-content: space-between; margin-bottom: 5px; }
 .wildlife-meter b { color: #c6c18d; }
 .wildlife-meter > i { display: block; height: 5px; background: #090d09; border: 1px solid #4a4935; }
