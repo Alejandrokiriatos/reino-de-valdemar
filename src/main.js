@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { createWorld, terrainHeight } from './world.js';
 import {
   BUILDINGS, SEASONS, newGame, housingCapacity, storageCapacity, storedResources, assignedWorkers, freeWorkers,
-  seasonForDay, canAfford, canPlace, placeBuilding, changeWorkers, demolishBuilding,
+  seasonForDay, weatherForDay, canAfford, canPlace, placeBuilding, changeWorkers, demolishBuilding,
   advanceDay, saveGame, loadGame, saveKeyExists
 } from './simulation.js';
 import './world.css';
@@ -78,6 +78,8 @@ function updateHud() {
   $('#storageCapacity').textContent = Math.floor(stored) + ' / ' + capacity;
   $('#storageBar').style.width = (capacity ? Math.min(100, stored / capacity * 100) : 0) + '%';
   $('#season').textContent = season;
+  const weatherIcon = { Despejado: '☀', Nublado: '☁', Lluvia: '🌧', Sequía: '☀', Nieve: '❄' };
+  $('#weather').textContent = (weatherIcon[state.weather] || '☁') + ' ' + (state.weather || weatherForDay(state.day));
   $('#day').textContent = 'Día ' + state.day;
   $('#freeWorkers').textContent = freeWorkers(state);
   $('#wildlife').textContent = Math.round(state.wildlife) + '%';
@@ -345,6 +347,8 @@ function advanceSimulationDay() {
   if (state.notices[0] && state.notices[0] !== lastStatus) {
     lastStatus = state.notices[0];
     notify(state.notices[0], true);
+  } else if (result.previousWeather !== result.weather) {
+    notify('El tiempo cambia a ' + result.weather.toLowerCase() + '.', true);
   }
   if (state.morale <= 0 || state.population <= 1) {
     setPaused(true);
@@ -456,7 +460,7 @@ function frame(time) {
     }
     worldClock += scaledDt;
   }
-  world.update(scaledDt, worldClock, dayClock / 42, seasonForDay(state.day));
+  world.update(scaledDt, worldClock, dayClock / 42, seasonForDay(state.day), state.weather || weatherForDay(state.day));
   world.camera.lookAt(target);
   world.render();
 }
