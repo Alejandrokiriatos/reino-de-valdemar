@@ -104,6 +104,9 @@ export function demolishBuilding(state, buildingId) {
   if (index < 0) return { ok: false, message: 'No se encontró el edificio.' };
   const building = state.buildings[index];
   if (building.permanent) return { ok: false, message: 'No puedes demoler los edificios fundadores de la aldea.' };
+  if (building.kind === 'storehouse' && state.buildings.filter((item) => item.kind === 'storehouse').length === 1) {
+    return { ok: false, message: 'La aldea necesita al menos un almacén para organizar sus mercancías.' };
+  }
   state.buildings.splice(index, 1);
   state.wood += Math.floor((BUILDINGS[building.kind]?.cost.wood || 0) * 0.35);
   state.stone += Math.floor((BUILDINGS[building.kind]?.cost.stone || 0) * 0.35);
