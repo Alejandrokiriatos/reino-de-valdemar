@@ -201,7 +201,7 @@ export function advanceDay(state) {
   const wildlifeFactor = state.wildlife <= 0 ? 0 : 0.25 + 0.75 * Math.min(1, state.wildlife / 30);
   const huntedFood = huntingWorkers * 1.85 * seasonFactor * wildlifeFactor;
   foodProduced += huntedFood;
-  const wildlifeRecovery = season === 'Invierno' ? 0.45 : 1.15;
+  const wildlifeRecovery = season === 'Invierno' ? 0.45 : weather === 'Sequía' ? 0.65 : (weather === 'Lluvia' || weather === 'Tormenta') ? 1.4 : 1.15;
   state.wildlife = Math.min(100, Math.max(0, state.wildlife + wildlifeRecovery - huntingWorkers * 1.05));
   const fishRecovery = weather === 'Tormenta' ? 2.1 : weather === 'Lluvia' ? 2.0 : weather === 'Sequía' ? 0.7 : 1.5;
   const fishFactor = state.fishStock <= 0 ? 0 : 0.2 + 0.8 * Math.min(1, state.fishStock / 35);
