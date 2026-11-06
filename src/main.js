@@ -55,6 +55,37 @@ const BUILD_DESC = {
   fishery: 'Pesca en el río. Si se captura demasiado, las poblaciones de peces necesitan tiempo para recuperarse.'
 };
 
+function updateForecast() {
+  const container = $('#forecastItems');
+  if (!container) return;
+  const icons = { Despejado: '☀', Nublado: '☁', Lluvia: '🌧', Tormenta: '⛈', Sequía: '☀', Nieve: '❄' };
+  const advice = {
+    Despejado: 'Tiempo estable',
+    Nublado: 'Cielo cubierto',
+    Lluvia: 'Buen riego',
+    Tormenta: 'Viento y lluvia',
+    Sequía: 'Riesgo para cultivos',
+    Nieve: 'Reserva más leña'
+  };
+  container.replaceChildren();
+  for (let offset = 1; offset <= 3; offset++) {
+    const forecastDay = state.day + offset;
+    const weather = weatherForDay(forecastDay);
+    const card = document.createElement('div');
+    card.className = 'forecast-day';
+    const dayLabel = document.createElement('small');
+    dayLabel.textContent = 'DÍA ' + forecastDay;
+    const icon = document.createElement('i');
+    icon.textContent = icons[weather] || '☁';
+    const name = document.createElement('b');
+    name.textContent = weather;
+    const note = document.createElement('em');
+    note.textContent = advice[weather] || 'Tiempo variable';
+    card.append(dayLabel, icon, name, note);
+    container.appendChild(card);
+  }
+}
+
 function notify(message, important = false) {
   $('#status').textContent = message;
   if (important) {
@@ -80,6 +111,7 @@ function updateHud() {
   $('#season').textContent = season;
   const weatherIcon = { Despejado: '☀', Nublado: '☁', Lluvia: '🌧', Tormenta: '⛈', Sequía: '☀', Nieve: '❄' };
   $('#weather').textContent = (weatherIcon[state.weather] || '☁') + ' ' + (state.weather || weatherForDay(state.day));
+  updateForecast();
   $('#day').textContent = 'Día ' + state.day;
   $('#freeWorkers').textContent = freeWorkers(state);
   $('#wildlife').textContent = Math.round(state.wildlife) + '%';
@@ -132,6 +164,7 @@ function startSession(nextState, message) {
   gameActive = true;
   menuOpen = false;
   $('#mainmenu').classList.add('hidden');
+  $('#forecastPanel').classList.add('hidden');
   $('#hud').classList.remove('hidden');
   $('#inspector').classList.add('hidden');
   world.hideGhost();
@@ -163,6 +196,7 @@ function continueGame() {
 
 function openMenu() {
   if (gameActive) setPaused(true);
+  $('#forecastPanel').classList.add('hidden');
   menuOpen = true;
   $('#mainmenu').classList.remove('hidden');
   $('#hud').classList.add('hidden');
@@ -366,6 +400,13 @@ $('#continue').addEventListener('click', continueGame);
 $('#resume').addEventListener('click', closeMenu);
 $('#menuBtn').addEventListener('click', openMenu);
 $('#options').addEventListener('click', () => $('#optionsBox').classList.toggle('hidden'));
+$('#forecastToggle').addEventListener('click', () => $('#forecastPanel').classList.toggle('hidden'));
+$('#forecastClose').addEventListener('click', () => $('#forecastPanel').classList.add('hidden'));
+document.addEventListener('pointerdown', (event) => {
+  const panel = $('#forecastPanel');
+  if (panel.classList.contains('hidden')) return;
+  if (!panel.contains(event.target) && !$('#forecastToggle').contains(event.target)) panel.classList.add('hidden');
+});
 $('#pause').addEventListener('click', () => setPaused(!paused));
 $('#save').addEventListener('click', saveCurrentGame);
 $('#collapseBuild').addEventListener('click', () => $('#buildPanel').classList.toggle('collapsed'));
@@ -444,6 +485,9 @@ window.addEventListener('keydown', (event) => {
   }
   if (event.key.toLowerCase() === 'b' && gameActive && !menuOpen) {
     $('#buildPanel').classList.toggle('collapsed');
+  }
+  if (event.key.toLowerCase() === 'f' && gameActive && !menuOpen) {
+    $('#forecastPanel').classList.toggle('hidden');
   }
   if (event.key.toLowerCase() === 's' && (event.ctrlKey || event.metaKey)) {
     event.preventDefault();
