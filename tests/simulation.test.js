@@ -216,8 +216,8 @@ test('farm fertility declines with cultivation and can be restored with manure',
   const state = newGame();
   const farm = state.buildings.find((building) => building.kind === 'farm');
   const startingManure = state.manure;
-  advanceDay(state);
-  assert.ok(farm.fertility < 100);
+  for (let day = 0; day < 4; day++) advanceDay(state);
+  assert.ok(farm.fertility < 99);
   const before = farm.fertility;
   const result = fertilizeFarm(state, farm.id);
   assert.equal(result.ok, true);
