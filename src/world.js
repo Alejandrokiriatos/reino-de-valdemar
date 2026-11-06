@@ -444,8 +444,31 @@ function makeVillager(scene, index, palette) {
   person.add(hair);
   const armL = addBox(person, -0.36, 1.1, 0, 0.14, 0.68, 0.16, tunic);
   const armR = addBox(person, 0.36, 1.1, 0, 0.14, 0.68, 0.16, tunic);
-  const cargo = new THREE.Group();
+  const cart = new THREE.Group();
   const cargoWood = material(0x795332);
+  const wheelWood = material(0x463629);
+  const wheelMetal = material(0x77776d, 0.62, { metalness: 0.35 });
+  addBox(cart, 0, 0.47, -1.12, 0.98, 0.16, 1.25, cargoWood);
+  for (const x of [-0.48, 0.48]) {
+    addBox(cart, x, 0.72, -1.12, 0.12, 0.43, 1.24, cargoWood);
+    addBox(cart, x * 0.72, 0.82, -0.42, 0.09, 0.09, 1.04, wheelWood);
+  }
+  for (const x of [-0.58, 0.58]) {
+    const wheel = new THREE.Group();
+    wheel.position.set(x, 0.32, -1.18);
+    const disk = new THREE.Mesh(new THREE.CylinderGeometry(0.29, 0.29, 0.13, 12), wheelWood);
+    disk.rotation.z = Math.PI / 2;
+    disk.castShadow = true;
+    wheel.add(disk);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.045, 6, 16), wheelMetal);
+    rim.rotation.y = Math.PI / 2;
+    rim.castShadow = true;
+    wheel.add(rim);
+    cart.add(wheel);
+    cart.userData.wheels ||= [];
+    cart.userData.wheels.push(wheel);
+  }
+  const cargo = new THREE.Group();
   const cargoCloth = material(0xb39a66);
   const cargoStone = material(0x858477);
   const cargoGold = material(0xc4a24d, 0.55, { metalness: 0.35 });
@@ -475,15 +498,18 @@ function makeVillager(scene, index, palette) {
   coin.position.set(0, 0.1, 0);
   coin.visible = false;
   cargo.add(coin);
-  cargo.position.set(0, 1.12, -0.3);
+  cargo.position.set(0, 0.72, -1.12);
   cargo.visible = false;
-  person.add(cargo);
+  cart.add(cargo);
+  cart.visible = false;
+  person.add(cart);
   const legL = addBox(person, -0.14, 0.28, 0, 0.16, 0.56, 0.18, palette.dark);
   const legR = addBox(person, 0.14, 0.28, 0, 0.16, 0.56, 0.18, palette.dark);
   person.position.set((Math.random() - 0.5) * 12, terrainHeight(0, 0), (Math.random() - 0.5) * 10);
   person.userData = {
     index, phase: Math.random() * 6, speed: 1.25 + Math.random() * 0.45,
-    target: new THREE.Vector3(), legL, legR, armL, armR, torso, cargo,
+    target: new THREE.Vector3(), legL, legR, armL, armR, torso, cargo, cart,
+    cartWheels: cart.userData.wheels || [],
     cargoParts: { sack, stone, coin, logs }, working: false, state: 'wandering',
     workTimer: 0, wait: Math.random() * 5
   };
@@ -1112,6 +1138,7 @@ export function createWorld(root) {
         p.state = 'wandering';
         p.wait = Math.random() * 2;
         p.cargo.visible = false;
+        p.cart.visible = false;
       });
     }
   }
@@ -1134,6 +1161,7 @@ export function createWorld(root) {
       p.route = null;
       p.routeIndex = 0;
       p.cargo.visible = false;
+      p.cart.visible = false;
       if (job) {
         p.cargoType = job.kind === 'farm' ? 'food'
           : job.kind === 'sawmill' ? 'wood'
@@ -1239,6 +1267,7 @@ export function createWorld(root) {
           if (p.workTimer <= 0) {
             addDeliveredResource(p.cargoType);
             p.cargo.visible = false;
+            p.cart.visible = false;
             p.state = 'toWork';
             assignTravelRoute(person, p.workTarget);
             p.workTimer = 1.8 + (p.index % 4) * 0.55;
@@ -1281,9 +1310,12 @@ export function createWorld(root) {
       p.legL.rotation.x = swing;
       p.legR.rotation.x = -swing;
       const workingPose = p.working && p.state === 'working';
-      const carryingPose = p.working && p.cargo.visible;
-      p.armL.rotation.x = workingPose ? Math.sin(p.phase * 5) * 0.65 : carryingPose ? -0.55 : -swing * 0.65;
-      p.armR.rotation.x = workingPose ? -Math.sin(p.phase * 5) * 0.65 : carryingPose ? -0.55 : swing * 0.65;
+      const carryingPose = p.working && p.cart.visible;
+      p.armL.rotation.x = workingPose ? Math.sin(p.phase * 5) * 0.65 : carryingPose ? -0.72 : -swing * 0.65;
+      p.armR.rotation.x = workingPose ? -Math.sin(p.phase * 5) * 0.65 : carryingPose ? -0.72 : swing * 0.65;
+      if (p.cart.visible && moving) {
+        p.cartWheels.forEach((wheel) => { wheel.rotation.x -= dt * p.speed * 2.8; });
+      }
       p.torso.rotation.z = moving ? Math.sin(p.phase * 3.5) * 0.025 : 0;
     });
   }
