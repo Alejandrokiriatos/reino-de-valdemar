@@ -55,6 +55,23 @@ test('wells provide a small daily morale benefit', () => {
   assert.ok(withWell.morale > withoutWell.morale);
 });
 
+test('hunting produces food but wildlife herds recover when not hunted', () => {
+  const state = newGame();
+  state.buildings.push({ id: 9, kind: 'hunter', x: 35, z: 40, workers: 2, permanent: false });
+  const before = state.food;
+  const result = advanceDay(state);
+  assert.ok(result.huntedFood > 0);
+  assert.ok(state.food > before);
+  const depleted = { ...newGame(), wildlife: 0 };
+  depleted.buildings.push({ id: 9, kind: 'hunter', x: 35, z: 40, workers: 2, permanent: false });
+  const depletedResult = advanceDay(depleted);
+  assert.equal(depletedResult.huntedFood, 0);
+  const resting = newGame();
+  resting.wildlife = 40;
+  advanceDay(resting);
+  assert.ok(resting.wildlife > 40);
+});
+
 
 test('legacy saves keep wood, stone, population and player-built status', () => {
   const oldStorage = globalThis.localStorage;
