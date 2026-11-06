@@ -455,10 +455,12 @@ export function createWorld(root) {
     });
   }
 
-  function update(dt, elapsed, dayProgress = 0.35) {
+  function update(dt, elapsed, dayProgress = 0.35, season = 'Primavera') {
     water.material.opacity = 0.86 + Math.sin(elapsed * 0.8) * 0.035;
     water.position.y = Math.sin(elapsed * 0.48) * 0.025;
     const angle = dayProgress * Math.PI * 2;
+    const seasonalGround = { Primavera: 0x6f8352, Verano: 0x71834d, Otoño: 0x88794f, Invierno: 0x778174 };
+    ground.material.color.setHex(seasonalGround[season] || seasonalGround.Primavera);
     sun.position.set(Math.cos(angle) * 42 - 4, Math.sin(angle) * 38 + 18, 22);
     sun.intensity = 0.72 + Math.max(0, Math.sin(angle)) * 2.25;
     const night = Math.max(0, -Math.sin(angle));
@@ -468,6 +470,7 @@ export function createWorld(root) {
       0.68 + Math.max(0, Math.sin(angle)) * 0.1,
       0.59 + night * 0.1
     );
+    scene.fog.color.copy(scene.background);
     villagers.forEach((person) => {
       const p = person.userData;
       p.phase += dt * p.speed;
