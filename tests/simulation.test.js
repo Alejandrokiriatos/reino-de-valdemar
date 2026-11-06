@@ -103,3 +103,24 @@ test('legacy saves keep wood, stone, population and player-built status', () => 
     else globalThis.localStorage = oldStorage;
   }
 });
+
+
+test('fishing requires a river bank and depleted fish stocks recover', () => {
+  const state = newGame();
+  assert.equal(canPlace(state, 'fishery', 28, 25).valid, true);
+  assert.equal(canPlace(state, 'fishery', -52, -52).valid, false);
+  state.buildings.push({ id: 11, kind: 'fishery', x: 28, z: 25, workers: 2, permanent: false });
+  state.fishStock = 20;
+  const result = advanceDay(state);
+  assert.ok(result.fishCaught > 0);
+  assert.ok(state.fishStock < 20);
+  const empty = newGame();
+  empty.buildings.push({ id: 11, kind: 'fishery', x: 28, z: 25, workers: 2, permanent: false });
+  empty.fishStock = 0;
+  const emptyResult = advanceDay(empty);
+  assert.equal(emptyResult.fishCaught, 0);
+  const resting = newGame();
+  resting.fishStock = 40;
+  advanceDay(resting);
+  assert.ok(resting.fishStock > 40);
+});
