@@ -809,11 +809,20 @@ export function createWorld(root) {
           : job.kind === 'quarry' ? 'stone'
           : job.kind === 'market' ? 'gold' : 'food';
         p.storageTarget = new THREE.Vector3(depot.x + 5.1, 0, depot.z + 2.5);
-        p.workTarget = new THREE.Vector3(
-          job.x + (index % 3 - 1) * 1.35,
-          0,
-          job.z + 3.3 + Math.floor(index / 3) * 0.85
-        );
+        if (job.kind === 'fishery') {
+          const riverX = 18 + Math.sin(job.z * 0.042) * 3.8;
+          p.workTarget = new THREE.Vector3(
+            job.x + Math.sign(riverX - job.x) * 3.1,
+            0,
+            job.z + (index % 2 - 0.5) * 1.25
+          );
+        } else {
+          p.workTarget = new THREE.Vector3(
+            job.x + (index % 3 - 1) * 1.35,
+            0,
+            job.z + 3.3 + Math.floor(index / 3) * 0.85
+          );
+        }
         p.target.copy(p.workTarget);
         p.workTimer = 1.6 + (index % 4) * 0.48;
       } else {
