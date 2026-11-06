@@ -142,11 +142,19 @@ export function advanceDay(state) {
   } else if (state.food < state.population * 2.2) {
     state.morale = Math.max(5, state.morale - 3);
   } else {
-    state.morale = Math.min(100, state.morale + 1.8);
+    const hasWell = state.buildings.some((building) => building.kind === 'well');
+    const guarded = state.buildings.some((building) => building.kind === 'tower' && building.workers > 0);
+    state.morale = Math.min(100, state.morale + 1.8 + (hasWell ? 0.55 : 0) + (guarded ? 0.35 : 0));
     if (state.day % 5 === 0 && state.population < housingCapacity(state) && state.food > state.population * 7) {
       state.population += 1;
       state.notices.unshift('Una nueva familia llega atraída por la prosperidad de Valdemar.');
     }
+  }
+
+  let remainingWorkers = state.population;
+  for (const building of state.buildings) {
+    building.workers = Math.max(0, Math.min(Number(building.workers) || 0, remainingWorkers));
+    remainingWorkers -= building.workers;
   }
 
   if (state.day % 12 === 0) {
@@ -191,6 +199,7 @@ export function loadGame() {
       gold: Math.max(0, Number(saved.gold) || 0),
       population: Math.max(1, Number(saved.population ?? saved.pop) || 1),
       morale: Math.min(100, Math.max(0, Number(saved.morale) || 70)),
+      notices: Array.isArray(saved.notices) ? saved.notices.slice(0, 8) : [],
       buildings: saved.buildings.filter((b) => b && BUILDINGS[b.kind]).map((b, index) => ({
         id: Number(b.id) || index + 1,
         kind: b.kind,
