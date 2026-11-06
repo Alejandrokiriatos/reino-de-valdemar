@@ -23,6 +23,7 @@
         <div class="resource"><span class="resource-icon">🪵</span><div><small>MADERA</small><b id="wood">130</b></div></div>
         <div class="resource"><span class="resource-icon">🪨</span><div><small>PIEDRA</small><b id="stone">100</b></div></div>
         <div class="resource"><span class="resource-icon">🪙</span><div><small>ORO</small><b id="gold">35</b></div></div>
+        <div class="resource manure-resource"><span class="resource-icon">🪴</span><div><small>ABONO</small><b id="manure">16</b></div></div>
         <div class="resource people-resource"><span class="resource-icon">👥</span><div><small>HABITANTES</small><b><span id="people">12</span><i>/</i><span id="housing">12</span></b></div></div>
       </div>
       <div class="realm-date"><span id="season">Primavera</span><i id="weather">☀ Despejado</i><b id="day">Día 1</b></div>
@@ -47,6 +48,7 @@
       <button class="build-card" data-build="quarry"><span class="build-icon">⛏</span><span class="build-info"><b>Cantera</b><small>Extrae piedra</small></span><span class="cost">45🪵  20🪨</span></button>
       <button class="build-card" data-build="hunter"><span class="build-icon">♢</span><span class="build-info"><b>Cabaña de cazadores</b><small>Carne y fauna silvestre</small></span><span class="cost">48🪵  8🪨</span></button>
       <button class="build-card" data-build="fishery"><span class="build-icon">⚓</span><span class="build-info"><b>Puesto de pesca</b><small>Pesca junto al río</small></span><span class="cost">55🪵  8🪨</span></button>
+      <button class="build-card" data-build="stable"><span class="build-icon">♞</span><span class="build-info"><b>Establo y corral</b><small>Ganado, leche y abono</small></span><span class="cost">65🪵  25🪨</span></button>
       <button class="build-card" data-build="tower"><span class="build-icon">♜</span><span class="build-info"><b>Torre de guardia</b><small>Vigila los caminos</small></span><span class="cost">50🪵  35🪨</span></button>
       <div class="panel-footer">
         <div class="labor-row"><span>Mano de obra libre</span><b id="freeWorkers">9</b></div>
@@ -55,6 +57,7 @@
         <div class="storage-meter"><div><span>Capacidad del almacén</span><b id="storageCapacity">445 / 650</b></div><i><span id="storageBar"></span></i></div>
         <div class="wildlife-meter"><div><span>Fauna del valle</span><b id="wildlife">100%</b></div><i><span id="wildlifeBar"></span></i></div>
         <div class="wildlife-meter"><div><span>Reserva de peces</span><b id="fishStock">100%</b></div><i><span id="fishBar"></span></i></div>
+        <div class="livestock-meter"><div><span>Ganado del reino</span><b id="livestockCount">2 / 4</b></div><i><span id="livestockBar"></span></i></div>
         <div class="logistics-display"><span>Mercancías entregadas</span><b id="logistics">🌾 0  ·  🪵 0  ·  🪨 0  ·  🪙 0</b></div>
         <p class="control-hint">Clic en terreno para construir · Clic en edificio para inspeccionar<br>Botón derecho y arrastrar: mover cámara · Rueda: zoom · B: panel · F: pronóstico</p>
       </div>
@@ -72,6 +75,16 @@
         <div class="worker-buttons"><button id="workerMinus" aria-label="Quitar trabajador">−</button><button id="workerPlus" aria-label="Asignar trabajador">+</button></div>
       </div>
       <p class="control-hint">Los trabajadores aumentan la producción del edificio. No asignes a todos: la aldea necesita mano de obra libre.</p>
+      <div id="farmSoil" class="farm-soil hidden">
+        <div class="farm-soil-heading"><span>FERTILIDAD DEL CAMPO</span><b id="farmFertility">100%</b></div>
+        <div class="farm-soil-track"><i id="farmFertilityBar"></i></div>
+        <button id="fertilizeFarm" class="inspector-action">Aplicar abono · 8</button>
+      </div>
+      <div id="stableControls" class="stable-controls hidden">
+        <b>Ganado del corral</b>
+        <span id="livestockInfo">2 / 4 animales en los corrales</span>
+        <button id="buyLivestock" class="inspector-action">Comprar res · 8 oro</button>
+      </div>
       <button id="demolish" class="danger-button">Demoler edificio</button>
     </aside>
 
