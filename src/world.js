@@ -304,6 +304,78 @@ function makeStorehouse(group, wood, dark, stone, roof, plaster) {
   }
 }
 
+
+function makeHunterCabin(group, wood, dark, stone, roof, plaster) {
+  makeHouse(group, wood, dark, stone, roof, plaster, dark);
+  addBox(group, -2.9, 1.45, -1.4, 0.18, 1.5, 0.18, dark);
+  addBox(group, 2.9, 1.45, -1.4, 0.18, 1.5, 0.18, dark);
+  for (const side of [-1, 1]) {
+    const antler = new THREE.Group();
+    antler.position.set(side * 1.5, 2.55, 2.55);
+    const stem = addCylinder(antler, 0, 0.5, 0, 0.045, 0.07, 1.05, material(0xd5c39b), 6);
+    stem.rotation.z = side * -0.22;
+    const branchL = addCylinder(antler, side * 0.23, 0.77, 0, 0.035, 0.04, 0.55, material(0xd5c39b), 6);
+    branchL.rotation.z = Math.PI / 2 - side * 0.35;
+    const branchR = addCylinder(antler, -side * 0.18, 0.68, 0, 0.035, 0.04, 0.48, material(0xd5c39b), 6);
+    branchR.rotation.z = -Math.PI / 2 + side * 0.3;
+    group.add(antler);
+  }
+}
+
+function makeDeer(scene, index, centerX, centerZ, palette) {
+  const deer = new THREE.Group();
+  const coat = palette.deerCoat;
+  const dark = palette.dark;
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.58, 9, 7), coat);
+  body.scale.set(0.78, 0.74, 1.4);
+  body.position.set(0, 1.12, 0);
+  body.castShadow = true;
+  deer.add(body);
+  const chest = new THREE.Mesh(new THREE.SphereGeometry(0.32, 8, 6), coat);
+  chest.position.set(0, 1.23, 0.65);
+  chest.scale.set(0.8, 1.25, 0.75);
+  chest.rotation.x = -0.25;
+  chest.castShadow = true;
+  deer.add(chest);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 6), coat);
+  head.position.set(0, 1.65, 0.93);
+  head.scale.set(0.78, 0.88, 1.1);
+  head.castShadow = true;
+  deer.add(head);
+  const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.13, 7, 5), material(0x8a705c));
+  muzzle.position.set(0, 1.55, 1.12);
+  deer.add(muzzle);
+  const legs = [];
+  for (const x of [-0.27, 0.27]) {
+    for (const z of [-0.62, 0.55]) {
+      const leg = new THREE.Group();
+      leg.position.set(x, 0.88, z);
+      const lower = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.045, 0.78, 6), dark);
+      lower.position.y = -0.39;
+      lower.castShadow = true;
+      leg.add(lower);
+      const hoof = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.12, 0.2), dark);
+      hoof.position.set(0, -0.78, 0.025);
+      leg.add(hoof);
+      deer.add(leg);
+      legs.push(leg);
+    }
+  }
+  for (const side of [-1, 1]) {
+    const antler = addCylinder(deer, side * 0.15, 1.98, 0.91, 0.025, 0.05, 0.64, material(0xd1c09b), 5);
+    antler.rotation.z = side * 0.32;
+    const branch = addCylinder(deer, side * 0.28, 2.12, 0.91, 0.02, 0.028, 0.38, material(0xd1c09b), 5);
+    branch.rotation.z = -side * 1.1;
+  }
+  deer.position.set(centerX + (Math.random() - 0.5) * 5, terrainHeight(centerX, centerZ), centerZ + (Math.random() - 0.5) * 5);
+  deer.userData = {
+    index, centerX, centerZ, target: new THREE.Vector3(centerX, 0, centerZ),
+    wait: Math.random() * 5, phase: Math.random() * 6, speed: 0.8 + Math.random() * 0.35, legs
+  };
+  scene.add(deer);
+  return deer;
+}
+
 function makeBuildingMesh(type, palette) {
   const group = new THREE.Group();
   const wood = palette.wood;
@@ -317,6 +389,7 @@ function makeBuildingMesh(type, palette) {
   else if (type === 'market') makeMarket(group, wood, roof, palette.cloth);
   else if (type === 'well') makeWell(group, stone, wood, roof, dark);
   else if (type === 'storehouse') makeStorehouse(group, wood, dark, stone, roof, palette.plaster);
+  else if (type === 'hunter') makeHunterCabin(group, wood, dark, stone, roof, palette.plaster);
   else makeTower(group, stone, roof, dark);
   return group;
 }
@@ -398,7 +471,8 @@ export function createWorld(root) {
     trunk: material(0x59402b), leaves: [material(0x3d6038), material(0x506e3e), material(0x66804b), material(0x789054)],
     crop: material(0x637b3e), cropGold: material(0xb5a057), soil: material(0x715d3e),
     cloth: material(0x9d794a), skin: material(0xd1a17a),
-    clothes: [material(0x8a4939), material(0x455d70), material(0x9a8048), material(0x68734a), material(0x784e6b), material(0x8a8b85)]
+    clothes: [material(0x8a4939), material(0x455d70), material(0x9a8048), material(0x68734a), material(0x784e6b), material(0x8a8b85)],
+    deerCoat: material(0x876344)
   };
   scene.add(new THREE.HemisphereLight(0xe5ecd9, 0x4a503d, 1.65));
   const sun = new THREE.DirectionalLight(0xffe0b2, 2.55);
@@ -445,6 +519,7 @@ export function createWorld(root) {
   const buildings = [];
   const roads = [];
   const villagers = [];
+  const deer = [];
   const stockyard = new THREE.Group();
   const deliveryCounts = { food: 0, wood: 0, stone: 0, gold: 0 };
   scene.add(stockyard);
@@ -497,6 +572,10 @@ export function createWorld(root) {
     if ((Math.abs(x) < 17 && Math.abs(z) < 17) || Math.abs(x - 18) < 8) continue;
     makeRock(scene, x, z, palette.stone, 0.3 + Math.random() * 0.7);
   }
+  const herds = [[-45, -38], [-52, 35], [4, 48], [-34, 63]];
+  herds.forEach(([x, z], herdIndex) => {
+    for (let i = 0; i < 2; i++) deer.push(makeDeer(scene, herdIndex * 2 + i, x, z, palette));
+  });
 
   makeRoad(scene, [[-8, -16], [-6, -12], [-3, -10], [0, -8], [4, -5]], 2.7);
   makeRoad(scene, [[-3, -9], [-6, -5], [-5, 1], [-4, 7]], 2.25);
@@ -654,6 +733,35 @@ export function createWorld(root) {
       0.59 + night * 0.1
     );
     scene.fog.color.copy(scene.background);
+    deer.forEach((animal) => {
+      const p = animal.userData;
+      p.phase += dt * p.speed;
+      p.wait -= dt;
+      if (p.wait <= 0) {
+        p.target.set(
+          p.centerX + (Math.random() - 0.5) * 13,
+          0,
+          p.centerZ + (Math.random() - 0.5) * 13
+        );
+        if (Math.abs(p.target.x - (18 + Math.sin(p.target.z * 0.042) * 3.8)) < 10) p.target.x -= 12;
+        p.wait = 4 + Math.random() * 8;
+      }
+      const dx = p.target.x - animal.position.x;
+      const dz = p.target.z - animal.position.z;
+      const distance = Math.hypot(dx, dz);
+      const moving = distance > 0.65;
+      if (moving) {
+        const step = Math.min(distance, dt * p.speed);
+        animal.position.x += (dx / distance) * step;
+        animal.position.z += (dz / distance) * step;
+        animal.rotation.y = Math.atan2(dx, dz);
+      }
+      animal.position.y = terrainHeight(animal.position.x, animal.position.z) + (moving ? Math.abs(Math.sin(p.phase * 5)) * 0.04 : 0);
+      p.legs.forEach((leg, index) => {
+        leg.rotation.x = moving ? Math.sin(p.phase * 6 + (index % 2) * Math.PI) * 0.42 : 0;
+      });
+    });
+
     villagers.forEach((person) => {
       const p = person.userData;
       p.phase += dt * p.speed;
