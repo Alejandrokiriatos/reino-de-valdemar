@@ -1,9 +1,9 @@
 {
   "name": "reino-de-valdemar",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "private": true,
   "type": "module",
-  "description": "Juego medieval 3D con puentes, caminos, carretas y economia de almacenamiento",
+  "description": "Juego medieval 3D con logística, puentes, economía y clima dinámico",
   "scripts": {
     "start": "vite --host 0.0.0.0",
     "build": "vite build",
