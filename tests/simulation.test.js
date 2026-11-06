@@ -71,6 +71,16 @@ test('hunting produces food but wildlife herds recover when not hunted', () => {
   resting.buildings.find((building) => building.kind === 'hunter').workers = 0;
   advanceDay(resting);
   assert.ok(resting.wildlife > 40);
+
+  const rainyValley = newGame();
+  rainyValley.day = 6;
+  rainyValley.wildlife = 50;
+  advanceDay(rainyValley);
+  const droughtValley = newGame();
+  droughtValley.day = 21;
+  droughtValley.wildlife = 50;
+  advanceDay(droughtValley);
+  assert.ok(rainyValley.wildlife > droughtValley.wildlife);
 });
 
 
