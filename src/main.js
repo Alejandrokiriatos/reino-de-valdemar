@@ -306,6 +306,8 @@ $('#menuBtn').addEventListener('click', openMenu);
 $('#options').addEventListener('click', () => $('#optionsBox').classList.toggle('hidden'));
 $('#pause').addEventListener('click', () => setPaused(!paused));
 $('#save').addEventListener('click', saveCurrentGame);
+$('#collapseBuild').addEventListener('click', () => $('#buildPanel').classList.toggle('collapsed'));
+$('#closeInspector').addEventListener('click', () => inspectBuilding(null));
 $('#workerPlus').addEventListener('click', () => onWorkerChange(1));
 $('#workerMinus').addEventListener('click', () => onWorkerChange(-1));
 $('#demolish').addEventListener('click', onDemolish);
