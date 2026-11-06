@@ -736,6 +736,7 @@ export function createWorld(root) {
   makeRoad(scene, [[-8, -16], [-6, -12], [-3, -10], [0, -8], [4, -5]], 2.7);
   makeRoad(scene, [[-3, -9], [-6, -5], [-5, 1], [-4, 7]], 2.25);
   makeRoad(scene, [[-7, -13], [-11, -11], [-15, -8], [-17, -3], [-19, 5]], 2.35);
+  makeRoad(scene, [[-12, -5], [-18, 0], [-24, 6], [-30, 12], [-34, 16]], 1.9);
   const roadMat = material(0x756044, 1);
 
   function emptyStockyard() {
