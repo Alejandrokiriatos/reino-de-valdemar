@@ -6,7 +6,8 @@ export const BUILDINGS = {
   tower:   { name: 'Torre de guardia', cost: { wood: 50, stone: 35 }, slots: 2, housing: 0, size: 6.2 },
   market:  { name: 'Mercado', cost: { wood: 65, stone: 20 }, slots: 2, housing: 0, size: 7.2 },
   well:    { name: 'Pozo', cost: { wood: 25, stone: 25 }, slots: 0, housing: 0, size: 3.8 },
-  storehouse: { name: 'Almacén', cost: { wood: 45, stone: 15 }, slots: 0, housing: 0, size: 8.2, storage: true }
+  storehouse: { name: 'Almacén', cost: { wood: 45, stone: 15 }, slots: 0, housing: 0, size: 8.2, storage: true },
+  hunter: { name: 'Cabaña de cazadores', cost: { wood: 48, stone: 8 }, slots: 2, housing: 0, size: 6.8 }
 };
 
 export const SEASONS = ['Primavera', 'Verano', 'Otoño', 'Invierno'];
@@ -30,7 +31,7 @@ export function newGame() {
       { id: 4, kind: 'farm', x: -4, z: 7, workers: 2, permanent: true, rotation: -0.08 },
       { id: 5, kind: 'sawmill', x: -19, z: 5, workers: 1, permanent: true, rotation: 0.2 },
       { id: 6, kind: 'storehouse', x: -17, z: -8, workers: 0, permanent: true, rotation: 0 },
-      { id: 7, kind: 'hunter', x: -34, z: 16, workers: 0, permanent: false, rotation: 0.18 }
+      { id: 7, kind: 'hunter', x: -34, z: 16, workers: 1, permanent: true, rotation: 0.18 }
     ],
     nextBuildingId: 8,
     notices: ['La aldea de Valdemar despierta. Cuida sus reservas antes de que llegue el invierno.']
