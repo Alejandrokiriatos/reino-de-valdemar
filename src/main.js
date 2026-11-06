@@ -436,6 +436,12 @@ function frame(time) {
 }
 requestAnimationFrame(frame);
 
+window.setInterval(() => {
+  if (!gameActive || paused || menuOpen) return;
+  const deliveries = world.getDeliveryCounts();
+  $('#logistics').textContent = '🌾 ' + deliveries.food + '  ·  🪵 ' + deliveries.wood + '  ·  🪨 ' + deliveries.stone + '  ·  🪙 ' + deliveries.gold;
+}, 1500);
+
 $('#speed').addEventListener('click', (event) => {
   const button = event.target.closest('[data-speed]');
   if (!button) return;
