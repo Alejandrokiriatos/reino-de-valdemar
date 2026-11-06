@@ -830,12 +830,26 @@ export function createWorld(root) {
     return road;
   }
 
-  function setPopulation(count) {
+  function setPopulation(count, resetPositions = false) {
     while (villagers.length < count) villagers.push(makeVillager(scene, villagers.length, palette));
     while (villagers.length > count) {
       const person = villagers.pop();
       scene.remove(person);
       person.traverse((child) => child.geometry?.dispose?.());
+    }
+    if (resetPositions) {
+      villagers.forEach((person) => {
+        const x = (Math.random() - 0.5) * 12;
+        const z = (Math.random() - 0.5) * 10;
+        person.position.set(x, terrainHeight(x, z), z);
+        person.rotation.set(0, Math.random() * Math.PI * 2, 0);
+        const p = person.userData;
+        p.working = false;
+        p.jobBuilding = null;
+        p.state = 'wandering';
+        p.wait = Math.random() * 2;
+        p.cargo.visible = false;
+      });
     }
   }
 
