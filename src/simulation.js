@@ -44,6 +44,18 @@ export function housingCapacity(state) {
   return state.buildings.reduce((total, building) => total + (BUILDINGS[building.kind]?.housing || 0), 0);
 }
 
+export function storageCapacity(state) {
+  const warehouses = state.buildings.filter((building) => building.kind === 'storehouse').length;
+  return warehouses * 450 + (warehouses ? 200 : 0);
+}
+
+export function storedResources(state) {
+  return Math.max(0, Number(state.food) || 0)
+    + Math.max(0, Number(state.wood) || 0)
+    + Math.max(0, Number(state.stone) || 0)
+    + Math.max(0, Number(state.gold) || 0);
+}
+
 export function assignedWorkers(state) {
   return state.buildings.reduce((total, building) => total + (Number(building.workers) || 0), 0);
 }
@@ -162,11 +174,24 @@ export function advanceDay(state) {
   const winter = season === 'Invierno';
   const foodConsumed = state.population * (winter ? 0.22 : 0.19);
   const woodConsumed = winter ? state.population * 0.12 : 0;
-  state.food = Math.max(0, Math.min(9999, state.food + foodProduced - foodConsumed));
-  state.wood = Math.max(0, Math.min(9999, state.wood + woodProduced - woodConsumed));
+  state.food = Math.max(0, state.food - foodConsumed);
+  state.wood = Math.max(0, state.wood - woodConsumed);
+
+  // Storage is a shared limit: new goods cannot appear in the village if the
+  // storehouse has no room, matching the visible stockpile/hauling system.
+  const capacity = storageCapacity(state);
+  let occupied = storedResources(state);
+  const storeGoods = (resource, amount) => {
+    const stored = Math.max(0, Math.min(amount, capacity - occupied, 9999 - state[resource]));
+    state[resource] += stored;
+    occupied += stored;
+    return stored;
+  };
+  const foodStored = storeGoods('food', foodProduced);
+  const woodStored = storeGoods('wood', woodProduced);
+  const stoneStored = storeGoods('stone', stoneProduced);
+  const goldStored = storeGoods('gold', goldProduced);
   if (winter && state.wood <= 0) state.morale = Math.max(0, state.morale - 2);
-  state.stone = Math.min(9999, state.stone + stoneProduced);
-  state.gold = Math.min(9999, state.gold + goldProduced);
 
   if (state.food <= 0) {
     state.morale = Math.max(0, state.morale - 13);
@@ -207,7 +232,8 @@ export function advanceDay(state) {
     season,
     foodProduced, huntedFood, huntingWorkers, wildlife: state.wildlife,
     fishCaught, fishingWorkers, fishStock: state.fishStock,
-    foodConsumed, woodProduced, woodConsumed, stoneProduced, goldProduced
+    foodConsumed, woodProduced, woodConsumed, stoneProduced, goldProduced,
+    foodStored, woodStored, stoneStored, goldStored, storageCapacity: capacity
   };
 }
 
