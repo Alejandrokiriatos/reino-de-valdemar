@@ -110,7 +110,7 @@ function startSession(nextState, message) {
   setPaused(false);
   world.camera.position.set(31, 32, 39);
   target.set(0, 0, 0);
-  if (state.camera?.position && Number.isFinite(state.camera.position.x)) {
+  if (state.camera?.position && [state.camera.position.x, state.camera.position.y, state.camera.position.z].every(Number.isFinite)) {
     world.camera.position.set(state.camera.position.x, state.camera.position.y, state.camera.position.z);
     if (state.camera.target) target.set(state.camera.target.x || 0, state.camera.target.y || 0, state.camera.target.z || 0);
   }
@@ -304,7 +304,8 @@ function advanceSimulationDay() {
   world.setJobs(state.buildings);
   updateHud();
   const report = 'Día ' + state.day + ': +' + result.foodProduced.toFixed(0) + ' comida, -' + result.foodConsumed.toFixed(0) +
-    ' consumida, +' + result.woodProduced.toFixed(0) + ' madera, +' + result.stoneProduced.toFixed(0) + ' piedra.';
+    ' comida, +' + result.woodProduced.toFixed(0) + ' madera, -' + result.woodConsumed.toFixed(0) +
+    ' leña, +' + result.stoneProduced.toFixed(0) + ' piedra.';
   notify(report);
   if (state.notices[0] && state.notices[0] !== lastStatus) {
     lastStatus = state.notices[0];
@@ -417,7 +418,7 @@ function frame(time) {
       advanceSimulationDay();
     }
   }
-  world.update(dt, time / 1000, dayClock / 42);
+  world.update(dt, time / 1000, dayClock / 42, seasonForDay(state.day));
   world.camera.lookAt(target);
   world.render();
 }
