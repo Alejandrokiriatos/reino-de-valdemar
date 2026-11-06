@@ -5,7 +5,8 @@ export const BUILDINGS = {
   quarry:  { name: 'Cantera', cost: { wood: 45, stone: 20 }, slots: 3, housing: 0, size: 7.4 },
   tower:   { name: 'Torre de guardia', cost: { wood: 50, stone: 35 }, slots: 2, housing: 0, size: 6.2 },
   market:  { name: 'Mercado', cost: { wood: 65, stone: 20 }, slots: 2, housing: 0, size: 7.2 },
-  well:    { name: 'Pozo', cost: { wood: 25, stone: 25 }, slots: 0, housing: 0, size: 3.8 }
+  well:    { name: 'Pozo', cost: { wood: 25, stone: 25 }, slots: 0, housing: 0, size: 3.8 },
+  storehouse: { name: 'Almacén', cost: { wood: 45, stone: 15 }, slots: 0, housing: 0, size: 8.2, storage: true }
 };
 
 export const SEASONS = ['Primavera', 'Verano', 'Otoño', 'Invierno'];
@@ -22,13 +23,14 @@ export function newGame() {
     population: 12,
     morale: 78,
     buildings: [
-      { id: 1, kind: 'tower', x: -8, z: -9, workers: 0, permanent: true, rotation: 0 },
+      { id: 1, kind: 'tower', x: -8, z: -16, workers: 0, permanent: true, rotation: 0 },
       { id: 2, kind: 'house', x: 0, z: -8, workers: 0, permanent: true, rotation: 0.08 },
       { id: 3, kind: 'house', x: 7, z: -4, workers: 0, permanent: true, rotation: -0.12 },
       { id: 4, kind: 'farm', x: -4, z: 7, workers: 2, permanent: true, rotation: -0.08 },
-      { id: 5, kind: 'sawmill', x: -16, z: 1, workers: 1, permanent: true, rotation: 0.2 }
+      { id: 5, kind: 'sawmill', x: -19, z: 5, workers: 1, permanent: true, rotation: 0.2 },
+      { id: 6, kind: 'storehouse', x: -17, z: -8, workers: 0, permanent: true, rotation: 0 }
     ],
-    nextBuildingId: 6,
+    nextBuildingId: 7,
     notices: ['La aldea de Valdemar despierta. Cuida sus reservas antes de que llegue el invierno.']
   };
 }
@@ -215,7 +217,13 @@ export function loadGame() {
       nextBuildingId: Math.max(Number(saved.nextBuildingId) || 1, saved.buildings.length + 1, ...saved.buildings.map((b) => (Number(b?.id) || 0) + 1))
     };
     if (!state.buildings.some((b) => b.kind === 'tower' && b.permanent)) {
-      state.buildings.unshift({ id: 0, kind: 'tower', x: -8, z: -9, workers: 0, permanent: true, rotation: 0 });
+      state.buildings.unshift({ id: 0, kind: 'tower', x: -8, z: -16, workers: 0, permanent: true, rotation: 0 });
+    }
+    if (!state.buildings.some((b) => b.kind === 'storehouse')) {
+      state.buildings.push({
+        id: state.nextBuildingId++,
+        kind: 'storehouse', x: -17, z: -8, workers: 0, permanent: true, rotation: 0
+      });
     }
     return state;
   } catch (error) {
