@@ -1,0 +1,41 @@
+{
+  "name": "reino-de-valdemar",
+  "version": "1.4.0",
+  "private": true,
+  "type": "module",
+  "description": "Juego de estrategia medieval 3D creado desde cero",
+  "scripts": {
+    "start": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "check": "node --check src/main.js && node --check electron.cjs",
+    "desktop": "electron .",
+    "dist": "npm run build && electron-builder --win portable"
+  },
+  "dependencies": {
+    "three": "^0.180.0"
+  },
+  "devDependencies": {
+    "vite": "^7.1.12",
+    "electron": "^38.2.0",
+    "electron-builder": "^26.0.12"
+  },
+  "main": "electron.cjs",
+  "build": {
+    "appId": "com.valdemar.kingdom",
+    "productName": "Reino de Valdemar",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron.cjs",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "portable"
+      ],
+      "icon": null
+    }
+  }
+}
