@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   newGame, housingCapacity, freeWorkers, canPlace, placeBuilding,
-  changeWorkers, advanceDay, seasonForDay
+  changeWorkers, advanceDay, seasonForDay, loadGame
 } from '../src/simulation.js';
 
 test('a new settlement starts with consistent population and housing', () => {
@@ -52,4 +52,35 @@ test('wells provide a small daily morale benefit', () => {
   advanceDay(withoutWell);
   advanceDay(withWell);
   assert.ok(withWell.morale > withoutWell.morale);
+});
+
+
+test('legacy saves keep wood, stone, population and player-built status', () => {
+  const oldStorage = globalThis.localStorage;
+  const legacy = {
+    day: 17, food: 88, logs: 73, rocks: 41, pop: 14,
+    buildings: [
+      { kind: 'tower', x: -8, z: -9 },
+      { kind: 'house', x: 0, z: -8 },
+      { kind: 'house', x: 7, z: -4 },
+      { kind: 'farm', x: -4, z: 7 },
+      { kind: 'house', x: 25, z: 25 }
+    ]
+  };
+  globalThis.localStorage = {
+    getItem(key) {
+      return key === 'valdemar-save' ? JSON.stringify(legacy) : null;
+    }
+  };
+  try {
+    const state = loadGame();
+    assert.equal(state.wood, 73);
+    assert.equal(state.stone, 41);
+    assert.equal(state.population, 14);
+    assert.equal(state.buildings[3].permanent, true);
+    assert.equal(state.buildings[4].permanent, false);
+  } finally {
+    if (oldStorage === undefined) delete globalThis.localStorage;
+    else globalThis.localStorage = oldStorage;
+  }
 });
