@@ -862,6 +862,127 @@ export function createWorld(root) {
     return road;
   }
 
+
+  function roadBankSide(x, z) {
+    const riverX = 18 + Math.sin(z * 0.042) * 3.8;
+    return Math.sign(x - riverX);
+  }
+
+  function findRoadRoute(start, destination) {
+    const direct = [destination.clone()];
+    if (!roadPaths.length || roadBankSide(start.x, start.z) !== roadBankSide(destination.x, destination.z)) {
+      return direct;
+    }
+
+    const nodes = [];
+    const nodeLookup = new Map();
+    const getNode = (x, z) => {
+      const key = Math.round(x * 10) + ':' + Math.round(z * 10);
+      if (nodeLookup.has(key)) return nodeLookup.get(key);
+      const node = { x, z, bank: roadBankSide(x, z), edges: [] };
+      const index = nodes.push(node) - 1;
+      nodeLookup.set(key, index);
+      return index;
+    };
+    const link = (a, b) => {
+      if (a === b) return;
+      const A = nodes[a];
+      const B = nodes[b];
+      if (!A || !B || A.bank !== B.bank) return;
+      const cost = Math.hypot(A.x - B.x, A.z - B.z);
+      if (cost < 0.05 || A.edges.some((edge) => edge.to === b)) return;
+      A.edges.push({ to: b, cost });
+      B.edges.push({ to: a, cost });
+    };
+
+    roadPaths.forEach((path) => {
+      const sequence = path.map(([x, z]) => getNode(x, z));
+      for (let i = 0; i < sequence.length - 1; i++) link(sequence[i], sequence[i + 1]);
+    });
+
+    // Join road branches whose endpoints or crossings nearly touch.
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const a = nodes[i];
+        const b = nodes[j];
+        if (a.bank !== b.bank) continue;
+        if (Math.hypot(a.x - b.x, a.z - b.z) <= 4.8) link(i, j);
+      }
+    }
+
+    const nearestNode = (point) => {
+      let best = -1;
+      let bestDistance = Infinity;
+      const bank = roadBankSide(point.x, point.z);
+      nodes.forEach((node, index) => {
+        if (node.bank !== bank) return;
+        const distance = (node.x - point.x) ** 2 + (node.z - point.z) ** 2;
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          best = index;
+        }
+      });
+      return bestDistance <= 30 * 30 ? best : -1;
+    };
+
+    const startNode = nearestNode(start);
+    const endNode = nearestNode(destination);
+    if (startNode < 0 || endNode < 0) return direct;
+    if (startNode === endNode) return direct;
+
+    const distances = new Array(nodes.length).fill(Infinity);
+    const previous = new Array(nodes.length).fill(-1);
+    const visited = new Uint8Array(nodes.length);
+    distances[startNode] = 0;
+
+    for (let pass = 0; pass < nodes.length; pass++) {
+      let current = -1;
+      let bestDistance = Infinity;
+      for (let i = 0; i < nodes.length; i++) {
+        if (!visited[i] && distances[i] < bestDistance) {
+          bestDistance = distances[i];
+          current = i;
+        }
+      }
+      if (current < 0 || current === endNode) break;
+      visited[current] = 1;
+      nodes[current].edges.forEach(({ to, cost }) => {
+        const candidate = distances[current] + cost;
+        if (candidate < distances[to]) {
+          distances[to] = candidate;
+          previous[to] = current;
+        }
+      });
+    }
+
+    if (!Number.isFinite(distances[endNode])) return direct;
+    const indices = [];
+    for (let cursor = endNode; cursor >= 0; cursor = previous[cursor]) {
+      indices.push(cursor);
+      if (cursor === startNode) break;
+    }
+    if (indices[indices.length - 1] !== startNode) return direct;
+    indices.reverse();
+
+    const route = [];
+    indices.slice(1).forEach((index) => {
+      const node = nodes[index];
+      const point = new THREE.Vector3(node.x, 0, node.z);
+      if (!route.length || route[route.length - 1].distanceTo(point) > 1.15) route.push(point);
+    });
+    if (!route.length || route[route.length - 1].distanceTo(destination) > 0.7) route.push(destination.clone());
+    else route[route.length - 1].copy(destination);
+    return route.length ? route : direct;
+  }
+
+  function assignTravelRoute(person, destination) {
+    const p = person.userData;
+    const start = new THREE.Vector3(person.position.x, 0, person.position.z);
+    p.route = findRoadRoute(start, destination);
+    p.routeIndex = 0;
+    p.target.copy(p.route[0] || destination);
+  }
+
   function connectBuildingToRoad(data) {
     if (data.permanent || data.kind === 'fishery' || roadPaths.length === 0) return;
     const angle = Number(data.rotation) || 0;
@@ -916,6 +1037,8 @@ export function createWorld(root) {
         const p = person.userData;
         p.working = false;
         p.jobBuilding = null;
+        p.route = null;
+        p.routeIndex = 0;
         p.state = 'wandering';
         p.wait = Math.random() * 2;
         p.cargo.visible = false;
@@ -938,6 +1061,8 @@ export function createWorld(root) {
       p.working = Boolean(job);
       p.jobBuilding = job || null;
       p.state = job ? 'toWork' : 'wandering';
+      p.route = null;
+      p.routeIndex = 0;
       p.cargo.visible = false;
       if (job) {
         p.cargoType = job.kind === 'farm' ? 'food'
@@ -959,7 +1084,7 @@ export function createWorld(root) {
             job.z + 3.3 + Math.floor(index / 3) * 0.85
           );
         }
-        p.target.copy(p.workTarget);
+        assignTravelRoute(person, p.workTarget);
         p.workTimer = 1.6 + (index % 4) * 0.48;
       } else {
         p.wait = Math.random() * 3;
@@ -1032,7 +1157,7 @@ export function createWorld(root) {
           p.workTimer -= dt;
           if (p.workTimer <= 0) {
             p.state = 'toStore';
-            p.target.copy(p.storageTarget);
+            assignTravelRoute(person, p.storageTarget);
             p.cargo.visible = true;
             p.cargoParts.sack.visible = p.cargoType === 'food';
             p.cargoParts.stone.visible = p.cargoType === 'stone';
@@ -1045,11 +1170,13 @@ export function createWorld(root) {
             addDeliveredResource(p.cargoType);
             p.cargo.visible = false;
             p.state = 'toWork';
-            p.target.copy(p.workTarget);
+            assignTravelRoute(person, p.workTarget);
             p.workTimer = 1.8 + (p.index % 4) * 0.55;
           }
         }
       } else if (p.wait <= 0 && !p.working) {
+        p.route = null;
+        p.routeIndex = 0;
         p.target.set((Math.random() - 0.5) * 18, 0, (Math.random() - 0.5) * 18);
         p.wait = 3.5 + Math.random() * 8;
       }
@@ -1064,11 +1191,18 @@ export function createWorld(root) {
         person.position.x += (dx / distance) * step;
         person.position.z += (dz / distance) * step;
         person.rotation.y = Math.atan2(dx, dz);
+      } else if (p.route && p.routeIndex < p.route.length - 1) {
+        p.routeIndex += 1;
+        p.target.copy(p.route[p.routeIndex]);
       } else if (p.working && p.state === 'toWork') {
         p.state = 'working';
+        p.route = null;
+        p.routeIndex = 0;
         p.workTimer = 2.1 + (p.index % 4) * 0.62;
       } else if (p.working && p.state === 'toStore') {
         p.state = 'unloading';
+        p.route = null;
+        p.routeIndex = 0;
         p.workTimer = 0.85;
       }
 
