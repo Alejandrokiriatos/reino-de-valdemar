@@ -858,7 +858,21 @@ export function createWorld(root) {
     }
     item.castShadow = true;
     item.receiveShadow = true;
+    item.userData.stockItem = true;
     stockyard.add(item);
+  }
+
+  function setDeliveryCounts(counts = {}) {
+    [...stockyard.children].forEach((child) => {
+      if (!child.userData.stockItem) return;
+      stockyard.remove(child);
+      child.geometry?.dispose?.();
+    });
+    for (const key of Object.keys(deliveryCounts)) {
+      deliveryCounts[key] = 0;
+      const amount = Math.max(0, Math.min(28, Math.floor(Number(counts[key]) || 0)));
+      for (let i = 0; i < amount; i++) addDeliveredResource(key);
+    }
   }
 
   function addBuilding(data) {
@@ -1308,6 +1322,7 @@ export function createWorld(root) {
     scene, camera, renderer, ground, buildings, villagers, addBuilding, removeBuilding,
     clearBuildings, setPopulation, setJobs, update, showGhost, hideGhost,
     getDeliveryCounts: () => ({ ...deliveryCounts }),
+    setDeliveryCounts,
     setQuality, render: () => renderer.render(scene, camera), addRoad: addRoadPath
   };
 }
