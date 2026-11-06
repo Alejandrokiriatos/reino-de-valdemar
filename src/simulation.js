@@ -212,7 +212,7 @@ export function loadGame() {
         permanent: Boolean(b.permanent ?? index < 4),
         rotation: Number(b.rotation) || 0
       })),
-      nextBuildingId: Math.max(Number(saved.nextBuildingId) || 1, ...saved.buildings.map((b) => (Number(b?.id) || 0) + 1))
+      nextBuildingId: Math.max(Number(saved.nextBuildingId) || 1, saved.buildings.length + 1, ...saved.buildings.map((b) => (Number(b?.id) || 0) + 1))
     };
     if (!state.buildings.some((b) => b.kind === 'tower' && b.permanent)) {
       state.buildings.unshift({ id: 0, kind: 'tower', x: -8, z: -9, workers: 0, permanent: true, rotation: 0 });
