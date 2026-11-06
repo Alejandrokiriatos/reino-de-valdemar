@@ -35,7 +35,8 @@ const BUILD_LABELS = {
   quarry: 'Cantera',
   tower: 'Torre de guardia',
   market: 'Mercado',
-  well: 'Pozo'
+  well: 'Pozo',
+  storehouse: 'Almacén'
 };
 
 const BUILD_DESC = {
@@ -45,7 +46,8 @@ const BUILD_DESC = {
   quarry: 'Extrae piedra para edificios defensivos y servicios.',
   tower: 'Vigila los caminos y refuerza la defensa del asentamiento.',
   market: 'Genera oro y mejora el ánimo de los habitantes.',
-  well: 'Asegura un punto de agua y mejora la vida de la aldea.'
+  well: 'Asegura un punto de agua y mejora la vida de la aldea.',
+  storehouse: 'Centro de acopio. Los trabajadores llevan hasta aquí los productos de sus talleres.'
 };
 
 function notify(message, important = false) {
@@ -69,6 +71,8 @@ function updateHud() {
   $('#season').textContent = season;
   $('#day').textContent = 'Día ' + state.day;
   $('#freeWorkers').textContent = freeWorkers(state);
+  const deliveries = world.getDeliveryCounts();
+  $('#logistics').textContent = '🌾 ' + deliveries.food + '  ·  🪵 ' + deliveries.wood + '  ·  🪨 ' + deliveries.stone + '  ·  🪙 ' + deliveries.gold;
   $('#morale').style.width = state.morale + '%';
   $('#moraleValue').textContent = Math.round(state.morale) + '%';
   $('#continue').disabled = !saveKeyExists();
