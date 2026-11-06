@@ -126,9 +126,12 @@ export function advanceDay(state) {
     if (building.kind === 'market') goldProduced += workers * 1.25;
   }
 
-  const foodConsumed = state.population * 0.19;
+  const winter = season === 'Invierno';
+  const foodConsumed = state.population * (winter ? 0.22 : 0.19);
+  const woodConsumed = winter ? state.population * 0.12 : 0;
   state.food = Math.max(0, Math.min(9999, state.food + foodProduced - foodConsumed));
-  state.wood = Math.min(9999, state.wood + woodProduced);
+  state.wood = Math.max(0, Math.min(9999, state.wood + woodProduced - woodConsumed));
+  if (winter && state.wood <= 0) state.morale = Math.max(0, state.morale - 2);
   state.stone = Math.min(9999, state.stone + stoneProduced);
   state.gold = Math.min(9999, state.gold + goldProduced);
 
@@ -169,7 +172,7 @@ export function advanceDay(state) {
   state.notices = state.notices.slice(0, 8);
   return {
     season,
-    foodProduced, foodConsumed, woodProduced, stoneProduced, goldProduced
+    foodProduced, foodConsumed, woodProduced, woodConsumed, stoneProduced, goldProduced
   };
 }
 
