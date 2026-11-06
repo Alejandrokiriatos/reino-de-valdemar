@@ -108,6 +108,12 @@ function startSession(nextState, message) {
   $('#inspector').classList.add('hidden');
   world.hideGhost();
   setPaused(false);
+  world.camera.position.set(31, 32, 39);
+  target.set(0, 0, 0);
+  if (state.camera?.position && Number.isFinite(state.camera.position.x)) {
+    world.camera.position.set(state.camera.position.x, state.camera.position.y, state.camera.position.z);
+    if (state.camera.target) target.set(state.camera.target.x || 0, state.camera.target.y || 0, state.camera.target.z || 0);
+  }
   addWorldBuildings();
   updateHud();
   notify(message, true);
@@ -146,6 +152,10 @@ function closeMenu() {
 }
 
 function saveCurrentGame() {
+  state.camera = {
+    position: { x: world.camera.position.x, y: world.camera.position.y, z: world.camera.position.z },
+    target: { x: target.x, y: target.y, z: target.z }
+  };
   const ok = saveGame(state);
   notify(ok ? 'Partida guardada correctamente en este equipo.' : 'No se pudo guardar. Comprueba el almacenamiento del navegador.', true);
   updateHud();
@@ -283,6 +293,13 @@ function activateBuild(type) {
 
 function advanceSimulationDay() {
   const result = advanceDay(state);
+  if (state.day % 3 === 0) {
+    state.camera = {
+      position: { x: world.camera.position.x, y: world.camera.position.y, z: world.camera.position.z },
+      target: { x: target.x, y: target.y, z: target.z }
+    };
+    saveGame(state);
+  }
   world.setPopulation(state.population);
   world.setJobs(state.buildings);
   updateHud();
@@ -411,6 +428,15 @@ $('#speed').addEventListener('click', (event) => {
   if (!button) return;
   gameSpeed = Number(button.dataset.speed);
   document.querySelectorAll('[data-speed]').forEach((item) => item.classList.toggle('selected', item === button));
+});
+window.addEventListener('beforeunload', () => {
+  if (gameActive) {
+    state.camera = {
+      position: { x: world.camera.position.x, y: world.camera.position.y, z: world.camera.position.z },
+      target: { x: target.x, y: target.y, z: target.z }
+    };
+    saveGame(state);
+  }
 });
 window.addEventListener('resize', () => {
   world.camera.aspect = window.innerWidth / window.innerHeight;
