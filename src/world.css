@@ -1,2 +1,14 @@
-/* Material auxiliar del mundo; el HUD vive en style.css */
-#game{background:#829477}canvas{outline:none}
+/* Presentation layer for the Three.js world; interface styles live in /style.css. */
+#game {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #819274;
+}
+#game canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  outline: none;
+  touch-action: none;
+}
