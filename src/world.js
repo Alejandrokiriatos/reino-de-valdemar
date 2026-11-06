@@ -637,6 +637,48 @@ export function createWorld(root) {
   scene.add(ground);
 
   const water = makeRiver(scene);
+
+  const rainCount = 360;
+  const rainPositions = new Float32Array(rainCount * 2 * 3);
+  const rainGeometry = new THREE.BufferGeometry();
+  rainGeometry.setAttribute('position', new THREE.BufferAttribute(rainPositions, 3).setUsage(THREE.DynamicDrawUsage));
+  for (let i = 0; i < rainCount; i++) {
+    const x = (Math.random() - 0.5) * 110;
+    const y = 4 + Math.random() * 22;
+    const z = (Math.random() - 0.5) * 110;
+    const offset = i * 6;
+    rainPositions[offset] = x;
+    rainPositions[offset + 1] = y;
+    rainPositions[offset + 2] = z;
+    rainPositions[offset + 3] = x - 0.18;
+    rainPositions[offset + 4] = y - 1.15;
+    rainPositions[offset + 5] = z + 0.08;
+  }
+  const rain = new THREE.LineSegments(
+    rainGeometry,
+    new THREE.LineBasicMaterial({ color: 0xb7c9d2, transparent: true, opacity: 0.42, depthWrite: false })
+  );
+  rain.visible = false;
+  rain.frustumCulled = false;
+  scene.add(rain);
+
+  const snowCount = 320;
+  const snowPositions = new Float32Array(snowCount * 3);
+  for (let i = 0; i < snowCount; i++) {
+    snowPositions[i * 3] = (Math.random() - 0.5) * 105;
+    snowPositions[i * 3 + 1] = Math.random() * 23;
+    snowPositions[i * 3 + 2] = (Math.random() - 0.5) * 105;
+  }
+  const snowGeometry = new THREE.BufferGeometry();
+  snowGeometry.setAttribute('position', new THREE.BufferAttribute(snowPositions, 3).setUsage(THREE.DynamicDrawUsage));
+  const snow = new THREE.Points(
+    snowGeometry,
+    new THREE.PointsMaterial({ color: 0xe7eee9, size: 0.14, transparent: true, opacity: 0.82, sizeAttenuation: true, depthWrite: false })
+  );
+  snow.visible = false;
+  snow.frustumCulled = false;
+  scene.add(snow);
+
   const buildings = [];
   const roads = [];
   const roadPaths = [];
@@ -1204,15 +1246,63 @@ export function createWorld(root) {
     });
   }
 
-  function update(dt, elapsed, dayProgress = 0.35, season = 'Primavera') {
-    water.material.opacity = 0.86 + Math.sin(elapsed * 0.8) * 0.035;
+  function update(dt, elapsed, dayProgress = 0.35, season = 'Primavera', weather = 'Despejado') {
+    const rainy = weather === 'Lluvia';
+    const snowy = weather === 'Nieve';
+    const dry = weather === 'Sequía';
+    const overcast = weather === 'Nublado' || rainy || snowy;
+    const overcastStrength = rainy ? 0.38 : snowy ? 0.43 : overcast ? 0.29 : 0;
+    water.material.opacity = (rainy ? 0.93 : 0.86) + Math.sin(elapsed * 0.8) * 0.035;
     water.position.y = Math.sin(elapsed * 0.48) * 0.025;
     const angle = dayProgress * Math.PI * 2;
     const seasonalGround = { Primavera: 0x6f8352, Verano: 0x71834d, Otoño: 0x88794f, Invierno: 0x778174 };
     ground.material.color.setHex(seasonalGround[season] || seasonalGround.Primavera);
+    if (snowy) ground.material.color.lerp(new THREE.Color(0xcbd3cc), 0.38);
+    else if (dry) ground.material.color.lerp(new THREE.Color(0xb49a5e), 0.24);
+    ground.material.roughness = rainy ? 0.76 : 1;
     sun.position.set(Math.cos(angle) * 42 - 4, Math.sin(angle) * 38 + 18, 22);
-    sun.intensity = 0.72 + Math.max(0, Math.sin(angle)) * 2.25;
+    sun.intensity = (0.72 + Math.max(0, Math.sin(angle)) * 2.25) * (1 - overcastStrength);
     const night = Math.max(0, -Math.sin(angle));
+
+    rain.visible = rainy;
+    if (rainy && dt > 0) {
+      const positions = rain.geometry.attributes.position;
+      for (let i = 0; i < rainCount; i++) {
+        const offset = i * 6;
+        const x = positions.array[offset];
+        let y = positions.array[offset + 1] - dt * 22;
+        let z = positions.array[offset + 2] + dt * 1.9;
+        if (y < -1) {
+          y = 15 + Math.random() * 13;
+          positions.array[offset] = (Math.random() - 0.5) * 110;
+          positions.array[offset + 2] = (Math.random() - 0.5) * 110;
+          positions.array[offset + 3] = positions.array[offset] - 0.18;
+          positions.array[offset + 5] = positions.array[offset + 2] + 0.08;
+        }
+        positions.array[offset + 1] = y;
+        positions.array[offset + 4] = y - 1.15;
+        positions.array[offset + 2] = z;
+        positions.array[offset + 5] = z + 0.08;
+      }
+      positions.needsUpdate = true;
+    }
+
+    snow.visible = snowy;
+    if (snowy && dt > 0) {
+      const positions = snow.geometry.attributes.position;
+      for (let i = 0; i < snowCount; i++) {
+        const index = i * 3;
+        positions.array[index] += Math.sin(elapsed * 0.6 + i * 0.23) * dt * 0.34;
+        positions.array[index + 1] -= dt * (1.15 + (i % 7) * 0.09);
+        positions.array[index + 2] += dt * 0.18;
+        if (positions.array[index + 1] < 0) {
+          positions.array[index] = (Math.random() - 0.5) * 105;
+          positions.array[index + 1] = 18 + Math.random() * 8;
+          positions.array[index + 2] = (Math.random() - 0.5) * 105;
+        }
+      }
+      positions.needsUpdate = true;
+    }
     flame.scale.set(0.88 + Math.sin(elapsed * 8.2) * 0.08, 0.86 + Math.sin(elapsed * 11.3) * 0.18, 0.88 + Math.cos(elapsed * 7.5) * 0.08);
     innerFlame.scale.y = 0.84 + Math.sin(elapsed * 13.1) * 0.16;
     flame.rotation.y = elapsed * 0.7;
@@ -1223,11 +1313,12 @@ export function createWorld(root) {
       puff.position.x = Math.sin(elapsed * 0.45 + index) * 0.18;
       puff.scale.setScalar(0.38 + phase * 0.8);
     });
-    scene.fog.density = 0.0065 + night * 0.0015;
+    scene.fog.density = 0.0065 + night * 0.0015 + (rainy ? 0.0028 : snowy ? 0.002 : overcast ? 0.001 : 0) + (dry ? -0.0007 : 0);
+    const daylight = Math.max(0, Math.sin(angle));
     scene.background.setRGB(
-      0.64 + Math.max(0, Math.sin(angle)) * 0.12,
-      0.68 + Math.max(0, Math.sin(angle)) * 0.1,
-      0.59 + night * 0.1
+      (0.64 + daylight * 0.12) * (1 - overcastStrength * 0.2),
+      (0.68 + daylight * 0.1) * (1 - overcastStrength * 0.18),
+      (0.59 + night * 0.1) + (snowy ? 0.12 : rainy ? 0.035 : 0)
     );
     scene.fog.color.copy(scene.background);
     deer.forEach((animal) => {
