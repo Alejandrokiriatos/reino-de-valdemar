@@ -125,7 +125,7 @@ function updateHud() {
   $('#livestockCount').textContent = (state.livestock || 0) + ' / ' + herdCapacity;
   $('#livestockBar').style.width = (herdCapacity ? Math.min(100, (state.livestock || 0) / herdCapacity * 100) : 0) + '%';
   const deliveries = world.getDeliveryCounts();
-  $('#logistics').textContent = '🌾 ' + deliveries.food + '  ·  🪵 ' + deliveries.wood + '  ·  🪨 ' + deliveries.stone + '  ·  🪙 ' + deliveries.gold;
+  $('#logistics').textContent = '🌾 ' + deliveries.food + '  ·  🪵 ' + deliveries.wood + '  ·  🪨 ' + deliveries.stone + '  ·  🪙 ' + deliveries.gold + '  ·  🪴 ' + deliveries.manure;
   $('#morale').style.width = state.morale + '%';
   $('#moraleValue').textContent = Math.round(state.morale) + '%';
   $('#continue').disabled = !saveKeyExists();
@@ -564,7 +564,7 @@ requestAnimationFrame(frame);
 window.setInterval(() => {
   if (!gameActive || paused || menuOpen) return;
   const deliveries = world.getDeliveryCounts();
-  $('#logistics').textContent = '🌾 ' + deliveries.food + '  ·  🪵 ' + deliveries.wood + '  ·  🪨 ' + deliveries.stone + '  ·  🪙 ' + deliveries.gold;
+  $('#logistics').textContent = '🌾 ' + deliveries.food + '  ·  🪵 ' + deliveries.wood + '  ·  🪨 ' + deliveries.stone + '  ·  🪙 ' + deliveries.gold + '  ·  🪴 ' + deliveries.manure;
 }, 1500);
 
 $('#speed').addEventListener('click', (event) => {
