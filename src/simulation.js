@@ -197,8 +197,8 @@ export function loadGame() {
       ...saved,
       day: Math.max(1, Number(saved.day) || 1),
       food: Math.max(0, Number(saved.food) || 0),
-      wood: Math.max(0, Number(saved.wood) || 0),
-      stone: Math.max(0, Number(saved.stone) || 0),
+      wood: Math.max(0, Number(saved.wood ?? saved.logs) || 0),
+      stone: Math.max(0, Number(saved.stone ?? saved.rocks) || 0),
       gold: Math.max(0, Number(saved.gold) || 0),
       population: Math.max(1, Number(saved.population ?? saved.pop) || 1),
       morale: Math.min(100, Math.max(0, Number(saved.morale) || 70)),
@@ -209,7 +209,7 @@ export function loadGame() {
         x: Number(b.x) || 0,
         z: Number(b.z) || 0,
         workers: Math.max(0, Math.min(BUILDINGS[b.kind].slots, Number(b.workers) || 0)),
-        permanent: Boolean(b.permanent ?? index < 5),
+        permanent: Boolean(b.permanent ?? index < 4),
         rotation: Number(b.rotation) || 0
       })),
       nextBuildingId: Math.max(Number(saved.nextBuildingId) || 1, ...saved.buildings.map((b) => (Number(b?.id) || 0) + 1))
