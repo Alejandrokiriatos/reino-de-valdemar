@@ -344,11 +344,16 @@ function advanceSimulationDay() {
     + (result.stoneProduced - result.stoneStored)
     + (result.goldProduced - result.goldStored);
   notify(productionLost > 0.01 ? report + ' El almacén está lleno: parte de la producción se perdió.' : report, productionLost > 0.01);
-  if (state.notices[0] && state.notices[0] !== lastStatus) {
+  if (result.previousWeather !== result.weather) {
+    const weatherNotice = state.notices.find((notice) => notice.startsWith('El tiempo cambia:'));
+    const message = result.weather === 'Tormenta'
+      ? '¡Tormenta en el valle! La lluvia y el viento dificultan los desplazamientos.'
+      : weatherNotice || 'El tiempo cambia a ' + result.weather.toLowerCase() + '.';
+    lastStatus = weatherNotice || message;
+    notify(message, true);
+  } else if (state.notices[0] && state.notices[0] !== lastStatus) {
     lastStatus = state.notices[0];
     notify(state.notices[0], true);
-  } else if (result.previousWeather !== result.weather) {
-    notify(result.weather === 'Tormenta' ? '¡Tormenta en el valle! La lluvia y el viento dificultan los desplazamientos.' : 'El tiempo cambia a ' + result.weather.toLowerCase() + '.', true);
   }
   if (state.morale <= 0 || state.population <= 1) {
     setPaused(true);
