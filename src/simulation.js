@@ -198,8 +198,8 @@ export function demolishBuilding(state, buildingId) {
   if (building.kind === 'storehouse' && state.buildings.filter((item) => item.kind === 'storehouse').length === 1) {
     return { ok: false, message: 'La aldea necesita al menos un almacén para organizar sus mercancías.' };
   }
-  if (building.kind === 'stable' && state.buildings.filter((item) => item.kind === 'stable').length === 1 && state.livestock > 0) {
-    return { ok: false, message: 'No puedes retirar el último establo mientras quede ganado en la aldea.' };
+  if (building.kind === 'stable' && state.livestock > livestockCapacity(state) - (BUILDINGS.stable.livestockCapacity || 0)) {
+    return { ok: false, message: 'Tras retirar este establo no habría espacio suficiente para todo el ganado.' };
   }
   state.buildings.splice(index, 1);
   state.wood += Math.floor((BUILDINGS[building.kind]?.cost.wood || 0) * 0.35);
@@ -234,7 +234,7 @@ export function advanceDay(state) {
       const fertility = Math.max(0, Math.min(100, Number(building.fertility ?? 100)));
       const soilFactor = 0.55 + 0.45 * (fertility / 100);
       foodProduced += workers * 2.55 * growingFactor * soilFactor;
-      building.fertility = Math.max(0, fertility - (0.08 + workers * 0.11));
+      building.fertility = Math.max(0, fertility - (workers > 0 ? 0.06 + workers * 0.12 : 0.015));
     }
     if (building.kind === 'sawmill') woodProduced += workers * 1.65;
     if (building.kind === 'quarry') stoneProduced += workers * 1.1;
