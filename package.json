@@ -1,13 +1,13 @@
 {
   "name": "reino-de-valdemar",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "private": true,
   "type": "module",
-  "description": "Juego de estrategia medieval 3D creado desde cero",
+  "description": "Juego de estrategia y gestión medieval 3D creado desde cero",
   "scripts": {
     "start": "vite --host 0.0.0.0",
     "build": "vite build",
-    "check": "node --check src/main.js && node --check electron.cjs",
+    "check": "node --check src/main.js && node --check src/world.js && node --check src/simulation.js && node --check electron.cjs",
     "desktop": "electron .",
     "dist": "npm run build && electron-builder --win portable"
   },
