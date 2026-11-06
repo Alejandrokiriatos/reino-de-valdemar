@@ -86,7 +86,7 @@ function makeRoad(scene, points, width = 2.2) {
     vertices.push(p.x - side.x, p.y, p.z - side.z, p.x + side.x, p.y + 0.002, p.z + side.z);
     if (i < segments) {
       const a = i * 2;
-      indices.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
+      indices.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
     }
   }
   const geometry = new THREE.BufferGeometry();
@@ -110,7 +110,7 @@ function makeRiver(scene) {
     vertices.push(center - width, 0.12, z, center + width, 0.12, z);
     if (i < segments) {
       const a = i * 2;
-      indices.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
+      indices.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
     }
   }
   const geometry = new THREE.BufferGeometry();
