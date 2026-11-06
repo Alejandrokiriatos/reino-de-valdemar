@@ -26,6 +26,7 @@ export function newGame() {
     morale: 78,
     wildlife: 100,
     fishStock: 100,
+    weather: weatherForDay(1),
     buildings: [
       { id: 1, kind: 'tower', x: -8, z: -16, workers: 0, permanent: true, rotation: 0 },
       { id: 2, kind: 'house', x: 0, z: -8, workers: 0, permanent: true, rotation: 0.08 },
@@ -66,6 +67,32 @@ export function freeWorkers(state) {
 
 export function seasonForDay(day) {
   return SEASONS[Math.floor((Math.max(1, day) - 1) / 12) % 4];
+}
+
+export function weatherForDay(day, season = seasonForDay(day)) {
+  // Stable per-day weather keeps a saved calendar reproducible without
+  // storing a random generator state.
+  const roll = ((Math.max(1, Math.floor(day)) * 73 + 19) % 100);
+  if (season === 'Primavera') {
+    return roll < 38 ? 'Lluvia' : roll < 68 ? 'Nublado' : 'Despejado';
+  }
+  if (season === 'Verano') {
+    return roll < 12 ? 'Lluvia' : roll < 29 ? 'Sequía' : roll < 58 ? 'Nublado' : 'Despejado';
+  }
+  if (season === 'Otoño') {
+    return roll < 42 ? 'Lluvia' : roll < 72 ? 'Nublado' : 'Despejado';
+  }
+  return roll < 43 ? 'Nieve' : roll < 79 ? 'Nublado' : 'Despejado';
+}
+
+export function weatherDescription(weather) {
+  return ({
+    Despejado: 'cielos despejados',
+    Nublado: 'cielos cubiertos',
+    Lluvia: 'lluvia',
+    Sequía: 'sequía',
+    Nieve: 'nieve'
+  })[weather] || 'tiempo variable';
 }
 
 export function canAfford(state, kind) {
@@ -144,7 +171,15 @@ export function demolishBuilding(state, buildingId) {
 export function advanceDay(state) {
   state.day += 1;
   const season = seasonForDay(state.day);
+  const previousWeather = state.weather || weatherForDay(state.day - 1);
+  const weather = weatherForDay(state.day, season);
+  state.weather = weather;
   const seasonFactor = season === 'Invierno' ? 0.32 : season === 'Verano' ? 1.2 : season === 'Otoño' ? 0.92 : 1.08;
+  const cropWeatherFactor = weather === 'Lluvia' ? 1.18
+    : weather === 'Sequía' ? 0.68
+    : weather === 'Nieve' ? 0.62
+    : weather === 'Nublado' ? 0.96 : 1;
+  const growingFactor = seasonFactor * cropWeatherFactor;
 
   let foodProduced = 0;
   let woodProduced = 0;
@@ -154,7 +189,7 @@ export function advanceDay(state) {
   let fishingWorkers = 0;
   for (const building of state.buildings) {
     const workers = Math.max(0, Number(building.workers) || 0);
-    if (building.kind === 'farm') foodProduced += workers * 2.55 * seasonFactor;
+    if (building.kind === 'farm') foodProduced += workers * 2.55 * growingFactor;
     if (building.kind === 'sawmill') woodProduced += workers * 1.65;
     if (building.kind === 'quarry') stoneProduced += workers * 1.1;
     if (building.kind === 'market') goldProduced += workers * 1.25;
@@ -166,14 +201,15 @@ export function advanceDay(state) {
   foodProduced += huntedFood;
   const wildlifeRecovery = season === 'Invierno' ? 0.45 : 1.15;
   state.wildlife = Math.min(100, Math.max(0, state.wildlife + wildlifeRecovery - huntingWorkers * 1.05));
+  const fishRecovery = weather === 'Lluvia' ? 2.0 : weather === 'Sequía' ? 0.7 : 1.5;
   const fishFactor = state.fishStock <= 0 ? 0 : 0.2 + 0.8 * Math.min(1, state.fishStock / 35);
   const fishCaught = fishingWorkers * 2.0 * seasonFactor * fishFactor;
   foodProduced += fishCaught;
-  state.fishStock = Math.min(100, Math.max(0, state.fishStock + 1.5 - fishingWorkers * 1.15));
+  state.fishStock = Math.min(100, Math.max(0, state.fishStock + fishRecovery - fishingWorkers * 1.15));
 
   const winter = season === 'Invierno';
   const foodConsumed = state.population * (winter ? 0.22 : 0.19);
-  const woodConsumed = winter ? state.population * 0.12 : 0;
+  const woodConsumed = winter ? state.population * (weather === 'Nieve' ? 0.16 : 0.12) : 0;
   state.food = Math.max(0, state.food - foodConsumed);
   state.wood = Math.max(0, state.wood - woodConsumed);
 
@@ -218,6 +254,9 @@ export function advanceDay(state) {
     remainingWorkers -= building.workers;
   }
 
+  if (weather !== previousWeather) {
+    state.notices.unshift('El tiempo cambia: llegan ' + weatherDescription(weather) + '.');
+  }
   if (state.day % 12 === 0) {
     const nextSeason = seasonForDay(state.day + 1);
     state.notices.unshift(nextSeason === 'Invierno'
@@ -229,7 +268,7 @@ export function advanceDay(state) {
 
   state.notices = state.notices.slice(0, 8);
   return {
-    season,
+    season, weather, previousWeather, cropWeatherFactor,
     foodProduced, huntedFood, huntingWorkers, wildlife: state.wildlife,
     fishCaught, fishingWorkers, fishStock: state.fishStock,
     foodConsumed, woodProduced, woodConsumed, stoneProduced, goldProduced,
@@ -265,6 +304,7 @@ export function loadGame() {
       morale: Math.min(100, Math.max(0, Number(saved.morale) || 70)),
       wildlife: Math.min(100, Math.max(0, Number(saved.wildlife ?? 100))),
       fishStock: Math.min(100, Math.max(0, Number(saved.fishStock ?? 100))),
+      weather: saved.weather || weatherForDay(Math.max(1, Number(saved.day) || 1)),
       notices: Array.isArray(saved.notices) ? saved.notices.slice(0, 8) : [],
       buildings: saved.buildings.filter((b) => b && BUILDINGS[b.kind]).map((b, index) => ({
         id: Number(b.id) || index + 1,
