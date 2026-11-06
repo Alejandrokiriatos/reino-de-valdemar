@@ -105,6 +105,14 @@ function addWorldBuildings() {
   state.buildings.forEach((building) => world.addBuilding(building));
   world.setPopulation(state.population, true);
   world.setJobs(state.buildings);
+  const initialStockpiles = state.stockpiles || {
+    food: Math.ceil(state.food / 24),
+    wood: Math.ceil(state.wood / 12),
+    stone: Math.ceil(state.stone / 10),
+    gold: Math.ceil(state.gold / 12)
+  };
+  world.setDeliveryCounts(initialStockpiles);
+  state.stockpiles = world.getDeliveryCounts();
 }
 
 function setPaused(value) {
@@ -170,6 +178,7 @@ function closeMenu() {
 }
 
 function saveCurrentGame() {
+  state.stockpiles = world.getDeliveryCounts();
   state.camera = {
     position: { x: world.camera.position.x, y: world.camera.position.y, z: world.camera.position.z },
     target: { x: target.x, y: target.y, z: target.z }
@@ -315,6 +324,7 @@ function activateBuild(type) {
 function advanceSimulationDay() {
   const result = advanceDay(state);
   if (state.day % 3 === 0) {
+    state.stockpiles = world.getDeliveryCounts();
     state.camera = {
       position: { x: world.camera.position.x, y: world.camera.position.y, z: world.camera.position.z },
       target: { x: target.x, y: target.y, z: target.z }
@@ -466,6 +476,7 @@ $('#speed').addEventListener('click', (event) => {
 });
 window.addEventListener('beforeunload', () => {
   if (gameActive) {
+    state.stockpiles = world.getDeliveryCounts();
     state.camera = {
       position: { x: world.camera.position.x, y: world.camera.position.y, z: world.camera.position.z },
       target: { x: target.x, y: target.y, z: target.z }
