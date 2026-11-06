@@ -90,9 +90,9 @@ export function changeWorkers(state, buildingId, change) {
   const building = state.buildings.find((item) => item.id === buildingId);
   if (!building) return { ok: false, message: 'No se encontró la construcción.' };
   const slots = BUILDINGS[building.kind]?.slots || 0;
-  if (change > 0 && freeWorkers(state) < 1) return { ok: false, message: 'No quedan trabajadores libres.' };
-  if (change > 0 && building.workers >= slots) return { ok: false, message: 'Este edificio ya tiene todos sus puestos ocupados.' };
-  if (change < 0 && building.workers <= 0) return { ok: false, message: 'Este edificio no tiene trabajadores asignados.' };
+  if (change > 0 && change > freeWorkers(state)) return { ok: false, message: 'No quedan suficientes trabajadores libres.' };
+  if (change > 0 && building.workers + change > slots) return { ok: false, message: 'Este edificio no tiene tantos puestos libres.' };
+  if (change < 0 && building.workers + change < 0) return { ok: false, message: 'Este edificio no tiene tantos trabajadores asignados.' };
   building.workers = Math.max(0, Math.min(slots, building.workers + change));
   return { ok: true, message: building.workers + ' trabajador(es) en ' + BUILDINGS[building.kind].name + '.' };
 }
