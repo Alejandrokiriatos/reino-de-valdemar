@@ -7,7 +7,8 @@ export const BUILDINGS = {
   market:  { name: 'Mercado', cost: { wood: 65, stone: 20 }, slots: 2, housing: 0, size: 7.2 },
   well:    { name: 'Pozo', cost: { wood: 25, stone: 25 }, slots: 0, housing: 0, size: 3.8 },
   storehouse: { name: 'Almacén', cost: { wood: 45, stone: 15 }, slots: 0, housing: 0, size: 8.2, storage: true },
-  hunter: { name: 'Cabaña de cazadores', cost: { wood: 48, stone: 8 }, slots: 2, housing: 0, size: 6.8 }
+  hunter: { name: 'Cabaña de cazadores', cost: { wood: 48, stone: 8 }, slots: 2, housing: 0, size: 6.8 },
+  fishery: { name: 'Puesto de pesca', cost: { wood: 55, stone: 8 }, slots: 2, housing: 0, size: 6.8 }
 };
 
 export const SEASONS = ['Primavera', 'Verano', 'Otoño', 'Invierno'];
@@ -24,6 +25,7 @@ export function newGame() {
     population: 12,
     morale: 78,
     wildlife: 100,
+    fishStock: 100,
     buildings: [
       { id: 1, kind: 'tower', x: -8, z: -16, workers: 0, permanent: true, rotation: 0 },
       { id: 2, kind: 'house', x: 0, z: -8, workers: 0, permanent: true, rotation: 0.08 },
@@ -63,7 +65,13 @@ export function canPlace(state, kind, x, z) {
   const spec = BUILDINGS[kind];
   if (!spec || Math.abs(x) > 78 || Math.abs(z) > 78) return { valid: false, reason: 'Fuera de los límites del valle.' };
   const riverX = 18 + Math.sin(z * 0.042) * 3.8;
-  if (Math.abs(x - riverX) < 7.8) return { valid: false, reason: 'El terreno está demasiado cerca del río.' };
+  const riverDistance = Math.abs(x - riverX);
+  if (kind === 'fishery') {
+    if (riverDistance < 6) return { valid: false, reason: 'Deja libre la orilla: el puesto necesita acceso a agua profunda.' };
+    if (riverDistance > 14) return { valid: false, reason: 'El puesto de pesca debe construirse junto al río.' };
+  } else if (riverDistance < 7.8) {
+    return { valid: false, reason: 'El terreno está demasiado cerca del río.' };
+  }
   const radius = spec.size * 0.55;
   for (const other of state.buildings) {
     const otherRadius = (BUILDINGS[other.kind]?.size || 6) * 0.55;
@@ -127,6 +135,7 @@ export function advanceDay(state) {
   let stoneProduced = 0;
   let goldProduced = 0;
   let huntingWorkers = 0;
+  let fishingWorkers = 0;
   for (const building of state.buildings) {
     const workers = Math.max(0, Number(building.workers) || 0);
     if (building.kind === 'farm') foodProduced += workers * 2.55 * seasonFactor;
@@ -134,12 +143,17 @@ export function advanceDay(state) {
     if (building.kind === 'quarry') stoneProduced += workers * 1.1;
     if (building.kind === 'market') goldProduced += workers * 1.25;
     if (building.kind === 'hunter') huntingWorkers += workers;
+    if (building.kind === 'fishery') fishingWorkers += workers;
   }
   const wildlifeFactor = state.wildlife <= 0 ? 0 : 0.25 + 0.75 * Math.min(1, state.wildlife / 30);
   const huntedFood = huntingWorkers * 1.85 * seasonFactor * wildlifeFactor;
   foodProduced += huntedFood;
   const wildlifeRecovery = season === 'Invierno' ? 0.45 : 1.15;
   state.wildlife = Math.min(100, Math.max(0, state.wildlife + wildlifeRecovery - huntingWorkers * 1.05));
+  const fishFactor = state.fishStock <= 0 ? 0 : 0.2 + 0.8 * Math.min(1, state.fishStock / 35);
+  const fishCaught = fishingWorkers * 2.0 * seasonFactor * fishFactor;
+  foodProduced += fishCaught;
+  state.fishStock = Math.min(100, Math.max(0, state.fishStock + 1.5 - fishingWorkers * 1.15));
 
   const winter = season === 'Invierno';
   const foodConsumed = state.population * (winter ? 0.22 : 0.19);
@@ -188,6 +202,7 @@ export function advanceDay(state) {
   return {
     season,
     foodProduced, huntedFood, huntingWorkers, wildlife: state.wildlife,
+    fishCaught, fishingWorkers, fishStock: state.fishStock,
     foodConsumed, woodProduced, woodConsumed, stoneProduced, goldProduced
   };
 }
@@ -219,6 +234,7 @@ export function loadGame() {
       population: Math.max(1, Number(saved.population ?? saved.pop) || 1),
       morale: Math.min(100, Math.max(0, Number(saved.morale) || 70)),
       wildlife: Math.min(100, Math.max(0, Number(saved.wildlife ?? 100))),
+      fishStock: Math.min(100, Math.max(0, Number(saved.fishStock ?? 100))),
       notices: Array.isArray(saved.notices) ? saved.notices.slice(0, 8) : [],
       buildings: saved.buildings.filter((b) => b && BUILDINGS[b.kind]).map((b, index) => ({
         id: Number(b.id) || index + 1,
