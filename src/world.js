@@ -266,6 +266,44 @@ function makeWell(group, stone, wood, roof, dark) {
   addCylinder(group, 0, 1.8, 0, 0.06, 0.06, 1.6, dark, 7);
 }
 
+
+function makeStorehouse(group, wood, dark, stone, roof, plaster) {
+  addBox(group, 0, 0.24, 0, 7.4, 0.48, 6.4, stone);
+  addBox(group, 0, 1.75, 0, 6.5, 2.65, 5.4, wood);
+  addBox(group, 0, 1.45, 2.76, 6.25, 2.1, 0.16, plaster);
+  for (const x of [-3.05, 3.05]) {
+    addBox(group, x, 1.8, 2.88, 0.2, 2.9, 0.2, dark);
+    addBox(group, x, 0.48, 2.88, 0.2, 0.8, 0.2, dark);
+  }
+  addBox(group, 0, 0.95, 2.88, 1.35, 1.65, 0.18, dark);
+  addBox(group, -0.62, 0.95, 2.99, 0.1, 1.65, 0.06, wood);
+  addBox(group, 0.62, 0.95, 2.99, 0.1, 1.65, 0.06, wood);
+  for (const x of [-2, 2]) {
+    addBox(group, x, 2.1, 2.9, 0.75, 0.72, 0.12, dark);
+    addBox(group, x, 2.1, 2.98, 0.82, 0.1, 0.06, wood);
+    addBox(group, x, 2.1, 3.02, 0.1, 0.74, 0.06, wood);
+  }
+  const roofL = addBox(group, -1.68, 3.35, 0, 3.65, 0.28, 6.1, roof);
+  roofL.rotation.z = -0.48;
+  const roofR = addBox(group, 1.68, 3.35, 0, 3.65, 0.28, 6.1, roof);
+  roofR.rotation.z = 0.48;
+  addBox(group, 0, 4.22, 0, 0.24, 0.22, 6.25, dark);
+  addBox(group, -2.5, 4.4, -1.7, 0.56, 0.7, 0.58, stone);
+  addBox(group, -2.5, 4.78, -1.7, 0.7, 0.1, roof);
+  for (const z of [-1.7, -0.55, 0.6]) {
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.38, 0.85, 9), wood);
+    barrel.position.set(3.9, 0.85, z);
+    barrel.castShadow = true;
+    group.add(barrel);
+    for (const y of [0.58, 1.08]) {
+      const hoop = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.035, 5, 12), dark);
+      hoop.rotation.x = Math.PI / 2;
+      hoop.position.set(3.9, y, z);
+      group.add(hoop);
+    }
+  }
+}
+
 function makeBuildingMesh(type, palette) {
   const group = new THREE.Group();
   const wood = palette.wood;
@@ -278,6 +316,7 @@ function makeBuildingMesh(type, palette) {
   else if (type === 'quarry') makeQuarry(group, stone, wood, dark);
   else if (type === 'market') makeMarket(group, wood, roof, palette.cloth);
   else if (type === 'well') makeWell(group, stone, wood, roof, dark);
+  else if (type === 'storehouse') makeStorehouse(group, wood, dark, stone, roof, palette.plaster);
   else makeTower(group, stone, roof, dark);
   return group;
 }
@@ -298,13 +337,38 @@ function makeVillager(scene, index, palette) {
   person.add(hair);
   const armL = addBox(person, -0.36, 1.1, 0, 0.14, 0.68, 0.16, tunic);
   const armR = addBox(person, 0.36, 1.1, 0, 0.14, 0.68, 0.16, tunic);
+  const cargo = new THREE.Group();
+  const cargoWood = material(0x795332);
+  const cargoCloth = material(0xb39a66);
+  const cargoStone = material(0x858477);
+  const cargoGold = material(0xc4a24d, 0.55, { metalness: 0.35 });
+  addBox(cargo, 0, 0, 0, 0.42, 0.32, 0.34, cargoWood, false);
+  for (const x of [-0.13, 0.13]) addBox(cargo, x, 0.17, 0.18, 0.035, 0.36, 0.035, cargoCloth, false);
+  const sack = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 6), cargoCloth);
+  sack.scale.set(1, 0.8, 0.86);
+  sack.position.set(0, 0.1, 0);
+  sack.visible = false;
+  cargo.add(sack);
+  const stone = new THREE.Mesh(new THREE.DodecahedronGeometry(0.23, 0), cargoStone);
+  stone.position.y = 0.08;
+  stone.visible = false;
+  cargo.add(stone);
+  const coin = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.055, 12), cargoGold);
+  coin.rotation.z = Math.PI / 2;
+  coin.position.set(0, 0.1, 0);
+  coin.visible = false;
+  cargo.add(coin);
+  cargo.position.set(0, 1.12, -0.3);
+  cargo.visible = false;
+  person.add(cargo);
   const legL = addBox(person, -0.14, 0.28, 0, 0.16, 0.56, 0.18, palette.dark);
   const legR = addBox(person, 0.14, 0.28, 0, 0.16, 0.56, 0.18, palette.dark);
   person.position.set((Math.random() - 0.5) * 12, terrainHeight(0, 0), (Math.random() - 0.5) * 10);
   person.userData = {
     index, phase: Math.random() * 6, speed: 1.25 + Math.random() * 0.45,
-    target: new THREE.Vector3(), legL, legR, armL, armR, torso, working: false,
-    wait: Math.random() * 5
+    target: new THREE.Vector3(), legL, legR, armL, armR, torso, cargo,
+    cargoParts: { sack, stone, coin }, working: false, state: 'wandering',
+    workTimer: 0, wait: Math.random() * 5
   };
   scene.add(person);
   return person;
@@ -369,6 +433,9 @@ export function createWorld(root) {
   const buildings = [];
   const roads = [];
   const villagers = [];
+  const stockyard = new THREE.Group();
+  const deliveryCounts = { food: 0, wood: 0, stone: 0, gold: 0 };
+  scene.add(stockyard);
   const ghost = new THREE.Mesh(
     new THREE.BoxGeometry(8, 0.16, 7),
     new THREE.MeshBasicMaterial({ color: 0x6ba56d, transparent: true, opacity: 0.45, depthWrite: false })
@@ -401,9 +468,52 @@ export function createWorld(root) {
   makeRoad(scene, [[-8, -5], [-11, -1], [-12, 5]], 2.1);
   const roadMat = material(0x756044, 1);
 
+  function positionStockyard(data) {
+    stockyard.clear();
+    stockyard.position.set(data.x + 5.1, terrainHeight(data.x + 5.1, data.z + 2.5), data.z + 2.5);
+    for (const key of Object.keys(deliveryCounts)) deliveryCounts[key] = 0;
+    addBox(stockyard, 0, 0.08, 0, 6.8, 0.16, 5.8, material(0x786143), false);
+    addBox(stockyard, -0.05, 0.18, -2.55, 6.5, 0.12, 0.12, material(0x493a29), false);
+    addBox(stockyard, -0.05, 0.18, 2.55, 6.5, 0.12, 0.12, material(0x493a29), false);
+    addBox(stockyard, -3.3, 0.18, 0, 0.12, 0.12, 5.1, material(0x493a29), false);
+    addBox(stockyard, 3.2, 0.18, 0, 0.12, 0.12, 5.1, material(0x493a29), false);
+  }
+
+  function addDeliveredResource(kind) {
+    const count = deliveryCounts[kind]++;
+    if (count >= 28) return;
+    const column = count % 4;
+    const row = Math.floor(count / 4);
+    const zoneX = kind === 'food' || kind === 'stone' ? -1.65 : 1.65;
+    const zoneZ = kind === 'food' || kind === 'wood' ? -1.25 : 1.25;
+    const x = zoneX + (column - 1.5) * 0.7;
+    const z = zoneZ + (row - 3) * 0.36;
+    let item;
+    if (kind === 'wood') {
+      item = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.85, 7), palette.trunk);
+      item.rotation.z = Math.PI / 2;
+      item.position.set(x, 0.34 + (row % 2) * 0.22, z);
+    } else if (kind === 'stone') {
+      item = new THREE.Mesh(new THREE.DodecahedronGeometry(0.28, 0), palette.stone);
+      item.scale.set(1.2, 0.85, 1);
+      item.position.set(x, 0.4, z);
+    } else if (kind === 'gold') {
+      item = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, 0.07, 12), material(0xc6a24f, 0.55, { metalness: 0.4 }));
+      item.position.set(x, 0.3 + (row % 2) * 0.12, z);
+    } else {
+      item = new THREE.Mesh(new THREE.SphereGeometry(0.28, 8, 6), material(0xb79b66));
+      item.scale.set(1.15, 0.8, 0.95);
+      item.position.set(x, 0.38, z);
+    }
+    item.castShadow = true;
+    item.receiveShadow = true;
+    stockyard.add(item);
+  }
+
   function addBuilding(data) {
     const group = makeBuildingMesh(data.kind, palette);
     group.position.set(data.x, terrainHeight(data.x, data.z), data.z);
+    if (data.kind === 'storehouse') positionStockyard(data);
     group.rotation.y = data.rotation || 0;
     group.userData.isBuilding = true;
     group.userData.buildingData = { ...data };
@@ -422,6 +532,8 @@ export function createWorld(root) {
 
   function clearBuildings() {
     [...buildings].forEach(removeBuilding);
+    stockyard.clear();
+    for (const key of Object.keys(deliveryCounts)) deliveryCounts[key] = 0;
   }
 
   function addRoadPath(points, width = 1.8) {
@@ -445,13 +557,33 @@ export function createWorld(root) {
     data.forEach((building) => {
       for (let i = 0; i < Math.max(0, Number(building.workers) || 0); i++) assignments.push(building);
     });
+    const depot = data.find((building) => building.kind === 'storehouse') || data[0] || { x: 0, z: 0 };
+    if (!stockyard.children.length && data.some((building) => building.kind === 'storehouse')) {
+      positionStockyard(depot);
+    }
     villagers.forEach((person, index) => {
       const p = person.userData;
       const job = assignments[index];
       p.working = Boolean(job);
       p.jobBuilding = job || null;
-      if (job) p.target.set(job.x + (index % 3 - 1) * 1.35, 0, job.z + 4 + Math.floor(index / 3) * 1.2);
-      else p.wait = 0;
+      p.state = job ? 'toWork' : 'wandering';
+      p.cargo.visible = false;
+      if (job) {
+        p.cargoType = job.kind === 'farm' ? 'food'
+          : job.kind === 'sawmill' ? 'wood'
+          : job.kind === 'quarry' ? 'stone'
+          : job.kind === 'market' ? 'gold' : 'food';
+        p.storageTarget = new THREE.Vector3(depot.x + 5.1, 0, depot.z + 2.5);
+        p.workTarget = new THREE.Vector3(
+          job.x + (index % 3 - 1) * 1.35,
+          0,
+          job.z + 3.3 + Math.floor(index / 3) * 0.85
+        );
+        p.target.copy(p.workTarget);
+        p.workTimer = 1.6 + (index % 4) * 0.48;
+      } else {
+        p.wait = Math.random() * 3;
+      }
     });
   }
 
@@ -475,29 +607,59 @@ export function createWorld(root) {
       const p = person.userData;
       p.phase += dt * p.speed;
       p.wait -= dt;
-      if (p.wait <= 0 && !p.working) {
-        p.target.set((Math.random() - 0.5) * 14, 0, (Math.random() - 0.5) * 14);
+
+      if (p.working && p.jobBuilding) {
+        if (p.state === 'working') {
+          p.workTimer -= dt;
+          if (p.workTimer <= 0) {
+            p.state = 'toStore';
+            p.target.copy(p.storageTarget);
+            p.cargo.visible = true;
+            p.cargoParts.sack.visible = p.cargoType === 'food';
+            p.cargoParts.stone.visible = p.cargoType === 'stone';
+            p.cargoParts.coin.visible = p.cargoType === 'gold';
+          }
+        } else if (p.state === 'unloading') {
+          p.workTimer -= dt;
+          if (p.workTimer <= 0) {
+            addDeliveredResource(p.cargoType);
+            p.cargo.visible = false;
+            p.state = 'toWork';
+            p.target.copy(p.workTarget);
+            p.workTimer = 1.8 + (p.index % 4) * 0.55;
+          }
+        }
+      } else if (p.wait <= 0 && !p.working) {
+        p.target.set((Math.random() - 0.5) * 18, 0, (Math.random() - 0.5) * 18);
         p.wait = 3.5 + Math.random() * 8;
       }
-      if (p.working && p.jobBuilding) {
-        p.target.set(p.jobBuilding.x + (p.index % 3 - 1) * 1.35, 0, p.jobBuilding.z + 4 + Math.floor(p.index / 3) * 1.2);
-      }
+
       const dx = p.target.x - person.position.x;
       const dz = p.target.z - person.position.z;
       const distance = Math.hypot(dx, dz);
       const moving = distance > 0.55;
+
       if (moving) {
         const step = Math.min(distance, dt * p.speed * (p.working ? 1.3 : 1));
         person.position.x += (dx / distance) * step;
         person.position.z += (dz / distance) * step;
         person.rotation.y = Math.atan2(dx, dz);
+      } else if (p.working && p.state === 'toWork') {
+        p.state = 'working';
+        p.workTimer = 2.1 + (p.index % 4) * 0.62;
+      } else if (p.working && p.state === 'toStore') {
+        p.state = 'unloading';
+        p.workTimer = 0.85;
       }
+
       person.position.y = terrainHeight(person.position.x, person.position.z) + (moving ? Math.abs(Math.sin(p.phase * 5)) * 0.06 : 0);
       const swing = moving ? Math.sin(p.phase * 7) * 0.55 : Math.sin(p.phase * 1.5) * 0.04;
       p.legL.rotation.x = swing;
       p.legR.rotation.x = -swing;
-      p.armL.rotation.x = -swing * 0.65;
-      p.armR.rotation.x = swing * 0.65;
+      const workingPose = p.working && p.state === 'working';
+      const carryingPose = p.working && p.cargo.visible;
+      p.armL.rotation.x = workingPose ? Math.sin(p.phase * 5) * 0.65 : carryingPose ? -0.55 : -swing * 0.65;
+      p.armR.rotation.x = workingPose ? -Math.sin(p.phase * 5) * 0.65 : carryingPose ? -0.55 : swing * 0.65;
       p.torso.rotation.z = moving ? Math.sin(p.phase * 3.5) * 0.025 : 0;
     });
   }
@@ -533,6 +695,7 @@ export function createWorld(root) {
   return {
     scene, camera, renderer, ground, buildings, villagers, addBuilding, removeBuilding,
     clearBuildings, setPopulation, setJobs, update, showGhost, hideGhost,
+    getDeliveryCounts: () => ({ ...deliveryCounts }),
     setQuality, render: () => renderer.render(scene, camera), addRoad: addRoadPath
   };
 }
