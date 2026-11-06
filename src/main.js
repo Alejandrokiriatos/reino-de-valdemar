@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { orbitCamera, panCamera, zoomCamera, clampCameraTarget } from './camera.js';
 import { createWorld, terrainHeight } from './world.js';
 import {
   BUILDINGS, SEASONS, newGame, housingCapacity, storageCapacity, storedResources, livestockCapacity, assignedWorkers, freeWorkers,
@@ -25,6 +26,8 @@ let worldClock = 0;
 let lastFrame = 0;
 let toastTimer = 0;
 let dragging = false;
+let dragButton = -1;
+let dragPointerId = null;
 let dragX = 0;
 let dragY = 0;
 let lastStatus = '';
@@ -46,7 +49,7 @@ const BUILD_LABELS = {
 const BUILD_DESC = {
   house: 'Aumenta la capacidad de alojamiento en seis habitantes.',
   farm: 'Cultiva alimentos. Su rendimiento cambia con las estaciones.',
-  sawmill: 'Produce madera para ampliar la aldea.',
+  sawmill: 'Los leñadores recorren el bosque, talan árboles y llevan los troncos al almacén. La reserva forestal necesita tiempo para recuperarse.',
   quarry: 'Extrae piedra para edificios defensivos y servicios.',
   tower: 'Vigila los caminos y refuerza la defensa del asentamiento.',
   market: 'Genera oro y mejora el ánimo de los habitantes.',
@@ -165,6 +168,8 @@ function updateHud() {
   $('#stone').textContent = Math.floor(state.stone);
   $('#gold').textContent = Math.floor(state.gold);
   $('#manure').textContent = Math.floor(state.manure || 0);
+  $('#forestReserve').textContent = Math.round(state.forestReserve ?? 180) + ' / 180';
+  $('#forestBar').style.width = Math.max(0, Math.min(100, (state.forestReserve ?? 180) / 180 * 100)) + '%';
   $('#people').textContent = state.population;
   $('#housing').textContent = housingCapacity(state);
   const capacity = storageCapacity(state);
@@ -239,7 +244,7 @@ function startSession(nextState, message) {
   $('#inspector').classList.add('hidden');
   world.hideGhost();
   setPaused(false);
-  world.camera.position.set(31, 32, 39);
+  world.camera.position.set(48, 52, 68);
   target.set(0, 0, 0);
   if (state.camera?.position && [state.camera.position.x, state.camera.position.y, state.camera.position.z].every(Number.isFinite)) {
     world.camera.position.set(state.camera.position.x, state.camera.position.y, state.camera.position.z);
@@ -556,7 +561,8 @@ $('#fullscreen').addEventListener('click', () => {
 });
 $('#centerCamera').addEventListener('click', () => {
   target.set(0, 0, 0);
-  world.camera.position.set(31, 32, 39);
+  world.camera.position.set(48, 52, 68);
+  world.camera.lookAt(target);
 });
 document.querySelectorAll('[data-build]').forEach((button) => {
   button.addEventListener('click', () => activateBuild(button.dataset.build));
@@ -567,38 +573,34 @@ $('#mainmenu').addEventListener('click', (event) => {
 
 world.renderer.domElement.addEventListener('pointermove', (event) => {
   updateBuildPreview(event);
-  if (!dragging) return;
-  const dx = event.clientX - dragX;
-  const dy = event.clientY - dragY;
-  world.camera.position.x -= dx * 0.055;
-  world.camera.position.z += dy * 0.055;
-  target.x -= dx * 0.055;
-  target.z += dy * 0.055;
-  dragX = event.clientX;
-  dragY = event.clientY;
+  if (!dragging || (dragPointerId !== null && event.pointerId !== dragPointerId)) return;
+  const dx = event.clientX - dragX, dy = event.clientY - dragY;
+  if (dragButton === 2) orbitCamera(world.camera, target, dx, dy, 0.0062);
+  else if (dragButton === 1 || (dragButton === 0 && event.shiftKey)) {
+    panCamera(world.camera, target, dx, dy);
+    clampCameraTarget(world.camera, target, 195);
+  }
+  dragX = event.clientX; dragY = event.clientY;
 });
 world.renderer.domElement.addEventListener('pointerdown', (event) => {
-  if (event.button === 2) {
-    dragging = true;
-    dragX = event.clientX;
-    dragY = event.clientY;
-    world.renderer.domElement.setPointerCapture?.(event.pointerId);
-    return;
+  if (event.button === 2 || event.button === 1 || (event.button === 0 && event.shiftKey)) {
+    dragging = true; dragButton = event.button; dragPointerId = event.pointerId;
+    dragX = event.clientX; dragY = event.clientY;
+    world.renderer.domElement.setPointerCapture?.(event.pointerId); event.preventDefault(); return;
   }
   if (event.button !== 0 || !gameActive || menuOpen) return;
-  if (buildMode) placeSelectedBuilding(event);
-  else selectWorldBuilding(event);
+  if (buildMode) placeSelectedBuilding(event); else selectWorldBuilding(event);
 });
-world.renderer.domElement.addEventListener('pointerup', () => { dragging = false; });
-world.renderer.domElement.addEventListener('pointercancel', () => { dragging = false; });
+const stopCameraDrag = (event) => {
+  if (dragPointerId !== null && event?.pointerId !== undefined && event.pointerId !== dragPointerId) return;
+  dragging = false; dragButton = -1; dragPointerId = null;
+};
+world.renderer.domElement.addEventListener('pointerup', stopCameraDrag);
+world.renderer.domElement.addEventListener('pointercancel', stopCameraDrag);
+world.renderer.domElement.addEventListener('lostpointercapture', stopCameraDrag);
 world.renderer.domElement.addEventListener('contextmenu', (event) => event.preventDefault());
 world.renderer.domElement.addEventListener('wheel', (event) => {
-  const offset = world.camera.position.clone().sub(target);
-  const factor = event.deltaY > 0 ? 1.09 : 0.92;
-  offset.multiplyScalar(factor);
-  const distance = THREE.MathUtils.clamp(offset.length(), 13, 88);
-  offset.setLength(distance);
-  world.camera.position.copy(target).add(offset);
+  zoomCamera(world.camera, target, event.deltaY, 14, 370);
 }, { passive: true });
 
 window.addEventListener('keydown', (event) => {

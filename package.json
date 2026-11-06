@@ -1,6 +1,6 @@
 {
   "name": "reino-de-valdemar",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
   "type": "module",
   "description": "Juego medieval 3D con ganado, fertilidad de campos, logística y clima dinámico",

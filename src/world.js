@@ -1,6 +1,7 @@
 import * as THREE from 'three';
+import { createSurfaceMaterials } from './graphics.js';
 
-export const WORLD_SIZE = 180;
+export const WORLD_SIZE = 420;
 
 export function terrainHeight(x, z) {
   const riverX = 18 + Math.sin(z * 0.042) * 3.8;
@@ -105,9 +106,9 @@ function makeRoad(scene, points, width = 2.2, heightOffset = 0.045) {
 function makeRiver(scene) {
   const vertices = [];
   const indices = [];
-  const segments = 180;
+  const segments = 420;
   for (let i = 0; i <= segments; i++) {
-    const z = -88 + (176 * i) / segments;
+    const z = -205 + (410 * i) / segments;
     const center = 18 + Math.sin(z * 0.042) * 3.8;
     const width = 3.25 + Math.sin(z * 0.075) * 0.35;
     vertices.push(center - width, 0.12, z, center + width, 0.12, z);
@@ -126,7 +127,7 @@ function makeRiver(scene) {
   const bankMat = material(0x8a805b, 1);
   const bank = new THREE.Mesh(new THREE.TubeGeometry(
     new THREE.CatmullRomCurve3(Array.from({ length: 30 }, (_, i) => {
-      const z = -85 + i * (170 / 29);
+      const z = -200 + i * (400 / 29);
       const x = 18 + Math.sin(z * 0.042) * 3.8 - 3.5;
       return new THREE.Vector3(x, terrainHeight(x, z) + 0.04, z);
     })), 100, 0.12, 5, false
@@ -554,11 +555,29 @@ function makeVillager(scene, index, palette) {
   head.position.y = 1.62;
   head.castShadow = true;
   person.add(head);
-  const hair = new THREE.Mesh(new THREE.SphereGeometry(0.225, 8, 6, 0, Math.PI * 2, 0, Math.PI * 0.56), palette.dark);
-  hair.position.y = 1.7;
-  person.add(hair);
-  const armL = addBox(person, -0.36, 1.1, 0, 0.14, 0.68, 0.16, tunic);
-  const armR = addBox(person, 0.36, 1.1, 0, 0.14, 0.68, 0.16, tunic);
+  const hair = new THREE.Mesh(new THREE.SphereGeometry(0.225, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.56), palette.dark);
+  hair.position.y = 1.7; person.add(hair);
+  const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0x34271f, roughness: 0.8 });
+  for (const side of [-1, 1]) {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.026, 6, 5), eyeMaterial);
+    eye.position.set(side * 0.082, 1.64, 0.196); person.add(eye);
+  }
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.055, 7, 6), palette.skin);
+  nose.position.set(0, 1.57, 0.225); person.add(nose);
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(0.24, 9, 6, 0, Math.PI * 2, 0, Math.PI * 0.48), palette.cloth);
+  cap.position.set(0, 1.78, 0); person.add(cap);
+  const capBrim = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.055, 10), palette.cloth);
+  capBrim.position.y = 1.73; person.add(capBrim);
+  addBox(person, 0, 0.72, 0, 0.52, 0.09, 0.4, palette.dark);
+  const buckle = new THREE.Mesh(new THREE.BoxGeometry(0.085, 0.09, 0.035), material(0xc5a45c, 0.5, { metalness: 0.25 }));
+  buckle.position.set(0, 0.72, 0.215); person.add(buckle);
+  const pouch = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.22, 0.13), palette.wood);
+  pouch.position.set(-0.31, 0.72, 0.04); person.add(pouch);
+  const armL = addBox(person, -0.36, 1.1, 0, 0.16, 0.68, 0.18, tunic);
+  const armR = addBox(person, 0.36, 1.1, 0, 0.16, 0.68, 0.18, tunic);
+  const handL = new THREE.Mesh(new THREE.SphereGeometry(0.095, 7, 6), palette.skin);
+  handL.position.set(-0.37, 0.73, 0.02); person.add(handL);
+  const handR = handL.clone(); handR.position.x = 0.37; person.add(handR);
   const cart = new THREE.Group();
   const cargoWood = material(0x795332);
   const wheelWood = material(0x463629);
@@ -624,8 +643,10 @@ function makeVillager(scene, index, palette) {
   cart.add(cargo);
   cart.visible = false;
   person.add(cart);
-  const legL = addBox(person, -0.14, 0.28, 0, 0.16, 0.56, 0.18, palette.dark);
-  const legR = addBox(person, 0.14, 0.28, 0, 0.16, 0.56, 0.18, palette.dark);
+  const legL = addBox(person, -0.14, 0.28, 0, 0.17, 0.56, 0.19, palette.dark);
+  const legR = addBox(person, 0.14, 0.28, 0, 0.17, 0.56, 0.19, palette.dark);
+  addBox(person, -0.14, 0.075, 0.08, 0.2, 0.16, 0.31, palette.dark);
+  addBox(person, 0.14, 0.075, 0.08, 0.2, 0.16, 0.31, palette.dark);
   person.position.set((Math.random() - 0.5) * 12, terrainHeight(0, 0), (Math.random() - 0.5) * 10);
   person.userData = {
     index, phase: Math.random() * 6, speed: 1.25 + Math.random() * 0.45,
@@ -641,27 +662,29 @@ function makeVillager(scene, index, palette) {
 export function createWorld(root) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0xa3ad96);
-  scene.fog = new THREE.FogExp2(0xa3ad96, 0.0065);
-  const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 500);
+  scene.fog = new THREE.FogExp2(0xa3ad96, 0.0039);
+  const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 1100);
   camera.position.set(31, 32, 39);
   camera.lookAt(0, 0, 0);
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.6));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.85));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.autoUpdate = true;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.08;
+  renderer.toneMappingExposure = 1.14;
   renderer.domElement.setAttribute('aria-label', 'Vista 3D del reino de Valdemar');
   root.replaceChildren(renderer.domElement);
 
+  const surface = createSurfaceMaterials(THREE);
   const palette = {
-    wood: material(0x765035), dark: material(0x38291f), stone: material(0x898779),
-    roof: material(0x624039), plaster: material(0xc0ad84), accent: material(0x45352c),
-    trunk: material(0x59402b), leaves: [material(0x3d6038), material(0x506e3e), material(0x66804b), material(0x789054)],
+    wood: surface.wood, dark: material(0x38291f), stone: surface.stone,
+    roof: surface.roof, plaster: surface.plaster, accent: material(0x45352c),
+    trunk: surface.bark, leaves: [material(0x3d6038), material(0x506e3e), material(0x66804b), material(0x789054)],
     crop: material(0x637b3e), cropGold: material(0xb5a057), soil: material(0x715d3e),
-    cloth: material(0x9d794a), skin: material(0xd1a17a),
+    cloth: surface.cloth, skin: material(0xd1a17a),
     clothes: [material(0x8a4939), material(0x455d70), material(0x9a8048), material(0x68734a), material(0x784e6b), material(0x8a8b85)],
     deerCoat: material(0x876344), cowCoat: material(0xe3dfce), cowPatch: material(0x443f38),
     cowMuzzle: material(0xc49b91), cowHorn: material(0x514638)
@@ -675,6 +698,8 @@ export function createWorld(root) {
   sun.shadow.camera.right = 72;
   sun.shadow.camera.top = 72;
   sun.shadow.camera.bottom = -72;
+  sun.shadow.camera.far = 260;
+  sun.shadow.camera.updateProjectionMatrix();
   sun.shadow.bias = -0.00025;
   scene.add(sun);
   const fill = new THREE.DirectionalLight(0xc2d3e4, 0.38);
@@ -732,10 +757,10 @@ export function createWorld(root) {
   fireLight.position.copy(campfire.position).add(new THREE.Vector3(0, 2.4, 0));
   scene.add(fireLight);
 
-  const groundGeometry = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, 120, 120);
+  const groundGeometry = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, 220, 220);
   const ground = new THREE.Mesh(
     groundGeometry,
-    new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, vertexColors: true })
+    surface.ground
   );
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
@@ -826,14 +851,14 @@ export function createWorld(root) {
 
   const grassGeometry = new THREE.ConeGeometry(0.065, 0.42, 4);
   const grassMaterial = material(0x85964f, 1);
-  const grass = new THREE.InstancedMesh(grassGeometry, grassMaterial, 1750);
+  const grass = new THREE.InstancedMesh(grassGeometry, grassMaterial, 9000);
   const grassDummy = new THREE.Object3D();
   let grassIndex = 0;
-  for (let i = 0; i < 1750; i++) {
-    const x = (Math.random() - 0.5) * 165;
-    const z = (Math.random() - 0.5) * 165;
+  for (let i = 0; i < 9000; i++) {
+    const x = (Math.random() - 0.5) * 390;
+    const z = (Math.random() - 0.5) * 390;
     const riverX = 18 + Math.sin(z * 0.042) * 3.8;
-    if ((Math.abs(x) < 18 && Math.abs(z) < 18) || Math.abs(x - riverX) < 8.5) continue;
+    if ((Math.abs(x) < 25 && Math.abs(z) < 25) || Math.abs(x - riverX) < 8.5) continue;
     grassDummy.position.set(x, terrainHeight(x, z) + 0.16, z);
     grassDummy.rotation.y = Math.random() * Math.PI;
     const scale = 0.55 + Math.random() * 0.9;
@@ -848,11 +873,28 @@ export function createWorld(root) {
   scene.add(grass);
 
   const treeLocations = [];
-  for (let i = 0; i < 260; i++) {
-    const x = (Math.random() - 0.5) * 165;
-    const z = (Math.random() - 0.5) * 165;
-    if ((Math.abs(x) < 22 && Math.abs(z) < 22) || Math.abs(x - (18 + Math.sin(z * 0.042) * 3.8)) < 9) continue;
-    treeLocations.push({ x, z, scale: 0.72 + Math.random() * 0.72, yaw: Math.random() * Math.PI * 2 });
+  const forestClusters = [
+    [-125, -125], [-132, -35], [-124, 78], [-42, 143], [66, 147],
+    [145, 115], [151, 14], [121, -112], [28, -151], [-87, -157],
+    [-185, 104], [187, -72]
+  ];
+  for (const [cx, cz] of forestClusters) {
+    const count = 74 + Math.floor(Math.random() * 22);
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const radius = 5 + Math.sqrt(Math.random()) * 38;
+      const x = cx + Math.cos(angle) * radius, z = cz + Math.sin(angle) * radius;
+      const riverX = 18 + Math.sin(z * 0.042) * 3.8;
+      if (Math.abs(x) > 198 || Math.abs(z) > 198) continue;
+      if ((Math.abs(x) < 34 && Math.abs(z) < 34) || Math.abs(x - riverX) < 10) continue;
+      treeLocations.push({ x, z, scale: 0.78 + Math.random() * 0.8, yaw: Math.random() * Math.PI * 2 });
+    }
+  }
+  for (let i = 0; i < 240; i++) {
+    const x = (Math.random() - 0.5) * 390, z = (Math.random() - 0.5) * 390;
+    const riverX = 18 + Math.sin(z * 0.042) * 3.8;
+    if ((Math.abs(x) < 35 && Math.abs(z) < 35) || Math.abs(x - riverX) < 10) continue;
+    treeLocations.push({ x, z, scale: 0.68 + Math.random() * 0.72, yaw: Math.random() * Math.PI * 2 });
   }
   const treeTrunks = new THREE.InstancedMesh(
     new THREE.CylinderGeometry(0.18, 0.28, 2.1, 7), palette.trunk, treeLocations.length
@@ -885,16 +927,67 @@ export function createWorld(root) {
   treeTrunks.receiveShadow = true;
   scene.add(treeTrunks);
   crownLayers.forEach((crown) => {
-    crown.castShadow = true;
-    crown.receiveShadow = true;
-    scene.add(crown);
+    crown.castShadow = true; crown.receiveShadow = true; scene.add(crown);
   });
+  const forestTrees = treeLocations.map((tree, index) => ({ ...tree, index, available: true, regrowAt: 0, reservedBy: null }));
+  const stumps = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.2, 0.26, 0.34, 8), palette.trunk, forestTrees.length);
+  stumps.castShadow = true; stumps.receiveShadow = true;
+  const zeroMatrix = new THREE.Matrix4().makeScale(0, 0, 0);
+  for (let i = 0; i < forestTrees.length; i++) stumps.setMatrixAt(i, zeroMatrix);
+  stumps.count = forestTrees.length;
+  scene.add(stumps);
+  function setTreeVisual(index, alive) {
+    const tree = forestTrees[index]; if (!tree) return;
+    treeDummy.position.set(tree.x, terrainHeight(tree.x, tree.z) + (alive ? 1.05 : 0.16), tree.z);
+    treeDummy.rotation.set(0, tree.yaw, 0); treeDummy.scale.set(tree.scale, alive ? tree.scale : 0.16, tree.scale);
+    treeDummy.updateMatrix(); treeTrunks.setMatrixAt(index, treeDummy.matrix);
+    crownLayers.forEach((crown, layer) => {
+      treeDummy.position.set(tree.x, terrainHeight(tree.x, tree.z) + (2.25 + layer * 0.78) * tree.scale, tree.z);
+      treeDummy.rotation.set(0, tree.yaw + layer * 1.8, 0); treeDummy.scale.setScalar(alive ? tree.scale : 0);
+      treeDummy.updateMatrix(); crown.setMatrixAt(index, treeDummy.matrix);
+    });
+    if (!alive) {
+      treeDummy.position.set(tree.x, terrainHeight(tree.x, tree.z) + 0.16, tree.z);
+      treeDummy.rotation.set(0, tree.yaw, 0); treeDummy.scale.set(tree.scale, 1, tree.scale);
+      treeDummy.updateMatrix(); stumps.setMatrixAt(index, treeDummy.matrix);
+    } else {
+      treeDummy.scale.set(0, 0, 0); treeDummy.updateMatrix(); stumps.setMatrixAt(index, treeDummy.matrix);
+    }
+    stumps.instanceMatrix.needsUpdate = true; treeTrunks.instanceMatrix.needsUpdate = true;
+    crownLayers.forEach((crown) => { crown.instanceMatrix.needsUpdate = true; });
+  }
+  function findForestTree(person, origin) {
+    let best = null, bestScore = Infinity;
+    for (const tree of forestTrees) {
+      if (!tree.available || (tree.reservedBy !== null && tree.reservedBy !== person.userData.index)) continue;
+      const distance = Math.hypot(tree.x - origin.x, tree.z - origin.z);
+      if (distance > 175) continue;
+      const score = distance + ((tree.index + person.userData.index * 7) % 11) * 0.035;
+      if (score < bestScore) { best = tree; bestScore = score; }
+    }
+    if (best) best.reservedBy = person.userData.index;
+    return best;
+  }
+  function assignForestTarget(person) {
+    const p = person.userData;
+    if (p.treeIndex !== null && p.treeIndex !== undefined) {
+      const previous = forestTrees[p.treeIndex];
+      if (previous?.reservedBy === p.index) previous.reservedBy = null;
+    }
+    const tree = findForestTree(person, person.position); if (!tree) return false;
+    p.treeIndex = tree.index; p.workTarget.set(tree.x, 0, tree.z); return true;
+  }
+  function harvestForestTree(index, elapsed) {
+    const tree = forestTrees[index]; if (!tree || !tree.available) return false;
+    tree.available = false; tree.reservedBy = null; tree.regrowAt = elapsed + 150 + (index % 5) * 18;
+    setTreeVisual(index, false); return true;
+  }
 
   const bushMatrices = [];
-  for (let i = 0; i < 105; i++) {
-    const x = (Math.random() - 0.5) * 155;
-    const z = (Math.random() - 0.5) * 155;
-    if ((Math.abs(x) < 18 && Math.abs(z) < 18) || Math.abs(x - 18) < 9) continue;
+  for (let i = 0; i < 460; i++) {
+    const x = (Math.random() - 0.5) * 390;
+    const z = (Math.random() - 0.5) * 390;
+    if ((Math.abs(x) < 24 && Math.abs(z) < 24) || Math.abs(x - (18 + Math.sin(z * 0.042) * 3.8)) < 9) continue;
     const scale = 0.7 + Math.random() * 0.65;
     for (let puff = 0; puff < 4; puff++) {
       bushMatrices.push({
@@ -920,10 +1013,10 @@ export function createWorld(root) {
   scene.add(bushes);
 
   const rockLocations = [];
-  for (let i = 0; i < 75; i++) {
-    const x = (Math.random() - 0.5) * 155;
-    const z = (Math.random() - 0.5) * 155;
-    if ((Math.abs(x) < 17 && Math.abs(z) < 17) || Math.abs(x - 18) < 8) continue;
+  for (let i = 0; i < 270; i++) {
+    const x = (Math.random() - 0.5) * 390;
+    const z = (Math.random() - 0.5) * 390;
+    if ((Math.abs(x) < 23 && Math.abs(z) < 23) || Math.abs(x - (18 + Math.sin(z * 0.042) * 3.8)) < 8) continue;
     rockLocations.push({ x, z, scale: 0.3 + Math.random() * 0.7 });
   }
   const rocks = new THREE.InstancedMesh(
@@ -939,12 +1032,51 @@ export function createWorld(root) {
   rocks.castShadow = true;
   rocks.receiveShadow = true;
   scene.add(rocks);
-  const herds = [[-45, -38], [-52, 35], [4, 48], [-34, 63]];
+  const herds = [[-45, -38], [-52, 35], [4, 48], [-34, 63], [-150, -80], [145, 75], [82, -165], [-170, 155]];
   herds.forEach(([x, z], herdIndex) => {
     for (let i = 0; i < 2; i++) deer.push(makeDeer(scene, herdIndex * 2 + i, x, z, palette));
   });
 
-  const roadMat = material(0x756044, 1);
+  const neighboringRealms = [
+    { name: 'Liria', x: -151, z: -142, color: 0x9c493a },
+    { name: 'Arvendel', x: 151, z: -142, color: 0x456e78 },
+    { name: 'Monteluz', x: 153, z: 148, color: 0x9d8547 },
+    { name: 'Rocabruna', x: -151, z: 148, color: 0x657b4b }
+  ];
+  for (const [realmIndex, realm] of neighboringRealms.entries()) {
+    const settlement = new THREE.Group();
+    settlement.position.set(realm.x, terrainHeight(realm.x, realm.z), realm.z);
+    for (let i = 0; i < 7; i++) {
+      const angle = (i / 7) * Math.PI * 2 + realmIndex * 0.35;
+      const radius = 12 + (i % 3) * 3;
+      const house = makeBuildingMesh('house', palette);
+      house.scale.setScalar(0.68 + (i % 2) * 0.08);
+      house.position.set(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
+      house.rotation.y = -angle + Math.PI * 0.5;
+      settlement.add(house);
+    }
+    const keep = makeBuildingMesh('tower', palette); keep.scale.setScalar(0.78); settlement.add(keep);
+    for (const side of [-1, 1]) {
+      addCylinder(settlement, side * 2.4, 6.2, 0, 0.055, 0.07, 12.4, palette.dark, 6).castShadow = false;
+      const banner = addBox(settlement, side * 2.4 + 0.75, 10.7, 0, 1.45, 2.1, 0.08, material(realm.color, 0.9));
+      banner.castShadow = false; banner.rotation.z = -0.05;
+    }
+    const approach = [[realm.x, realm.z + 20], [realm.x + 5, realm.z + 29], [realm.x + 2, realm.z + 39], [realm.x + 13, realm.z + 48]];
+    const road = makeRoad(scene, approach, 2.3); road.material = surface.road;
+    roadPaths.push(approach); scene.add(settlement);
+    const labelCanvas = document.createElement('canvas'); labelCanvas.width = 512; labelCanvas.height = 128;
+    const ctx = labelCanvas.getContext('2d');
+    ctx.fillStyle = 'rgba(18,25,19,0.72)'; ctx.fillRect(0, 12, 512, 104);
+    ctx.strokeStyle = '#d0b77a'; ctx.lineWidth = 4; ctx.strokeRect(4, 14, 504, 100);
+    ctx.fillStyle = '#f1e5c7'; ctx.font = 'bold 48px Georgia'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(realm.name.toUpperCase(), 256, 64);
+    const labelTexture = new THREE.CanvasTexture(labelCanvas); labelTexture.colorSpace = THREE.SRGBColorSpace;
+    const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: labelTexture, transparent: true, depthWrite: false }));
+    label.position.set(realm.x, terrainHeight(realm.x, realm.z) + 17, realm.z);
+    label.scale.set(25, 6.25, 1); scene.add(label);
+  }
+
+  const roadMat = surface.road;
   const villageRoads = [
     { points: [[-8, -16], [-6, -12], [-3, -10], [0, -8], [4, -5]], width: 2.7 },
     { points: [[-3, -9], [-6, -5], [-5, 1], [-4, 7]], width: 2.25 },
@@ -1403,6 +1535,12 @@ export function createWorld(root) {
     villagers.forEach((person, index) => {
       const p = person.userData;
       const job = assignments[index];
+      if (p.working === Boolean(job) && p.jobBuilding?.id === job?.id) return;
+      if (p.treeIndex !== null && p.treeIndex !== undefined) {
+        const previousTree = forestTrees[p.treeIndex];
+        if (previousTree?.reservedBy === p.index) previousTree.reservedBy = null;
+      }
+      p.treeIndex = null;
       p.working = Boolean(job);
       p.jobBuilding = job || null;
       p.state = job ? 'toWork' : 'wandering';
@@ -1425,10 +1563,11 @@ export function createWorld(root) {
             0,
             job.z + (index % 2 - 0.5) * 1.25
           );
+        } else if (job.kind === 'sawmill' && assignForestTarget(person)) {
+          // Lumberjacks travel to an actual standing tree in the forest.
         } else {
           p.workTarget = new THREE.Vector3(
-            job.x + (index % 3 - 1) * 1.35,
-            0,
+            job.x + (index % 3 - 1) * 1.35, 0,
             job.z + 3.3 + Math.floor(index / 3) * 0.85
           );
         }
@@ -1441,6 +1580,11 @@ export function createWorld(root) {
   }
 
   function update(dt, elapsed, dayProgress = 0.35, season = 'Primavera', weather = 'Despejado', wildlife = 100) {
+    forestTrees.forEach((tree, index) => {
+      if (!tree.available && elapsed >= tree.regrowAt) {
+        tree.available = true; tree.reservedBy = null; setTreeVisual(index, true);
+      }
+    });
     const stormy = weather === 'Tormenta';
     const rainy = weather === 'Lluvia' || stormy;
     const snowy = weather === 'Nieve';
@@ -1451,7 +1595,7 @@ export function createWorld(root) {
     water.material.opacity = (rainy ? 0.93 : 0.86) + Math.sin(elapsed * 0.8) * 0.035;
     water.position.y = Math.sin(elapsed * 0.48) * 0.025;
     const angle = dayProgress * Math.PI * 2;
-    const seasonalGround = { Primavera: 0x6f8352, Verano: 0x71834d, Otoño: 0x88794f, Invierno: 0x778174 };
+    const seasonalGround = { Primavera: 0xf4f5e7, Verano: 0xf1f0dc, Otoño: 0xf1e7d2, Invierno: 0xe7ecea };
     ground.material.color.setHex(seasonalGround[season] || seasonalGround.Primavera);
     if (snowy) ground.material.color.lerp(new THREE.Color(0xcbd3cc), 0.38);
     else if (dry) ground.material.color.lerp(new THREE.Color(0xb49a5e), 0.24);
@@ -1599,6 +1743,9 @@ export function createWorld(root) {
         if (p.state === 'working') {
           p.workTimer -= dt;
           if (p.workTimer <= 0) {
+            if (p.jobBuilding?.kind === 'sawmill' && p.treeIndex !== null && p.treeIndex !== undefined) {
+              harvestForestTree(p.treeIndex, elapsed); p.treeIndex = null;
+            }
             p.state = 'toStore';
             assignTravelRoute(person, p.storageTarget);
             p.cart.visible = true;
@@ -1616,7 +1763,9 @@ export function createWorld(root) {
             p.cargo.visible = false;
             p.cart.visible = false;
             p.state = 'toWork';
-            assignTravelRoute(person, p.workTarget);
+            if (p.jobBuilding?.kind === 'sawmill' && !assignForestTarget(person)) {
+              p.state = 'working'; p.workTimer = 4;
+            } else assignTravelRoute(person, p.workTarget);
             p.workTimer = 1.8 + (p.index % 4) * 0.55;
           }
         }

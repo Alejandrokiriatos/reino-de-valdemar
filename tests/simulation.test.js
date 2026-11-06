@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  newGame, housingCapacity, storageCapacity, storedResources, livestockCapacity, freeWorkers, canPlace, placeBuilding,
+  newGame, housingCapacity, storageCapacity, storedResources, livestockCapacity, freeWorkers, canPlace, placeBuilding, BUILDINGS,
   changeWorkers, buyLivestock, fertilizeFarm, demolishBuilding, advanceDay, seasonForDay, weatherForDay, loadGame, tradeWithCaravan
 } from '../src/simulation.js';
 
@@ -302,4 +302,29 @@ test('trade rejects unavailable caravans, insufficient gold, stock, goods and st
   state.gold = 0;
   state.manure = 0;
   assert.equal(tradeWithCaravan(state, 'buy', 'wood', 10).ok, false);
+});
+
+test('el bosque limita la madera disponible y se regenera gradualmente', () => {
+  const state = newGame();
+  state.forestReserve = 1;
+  const result = advanceDay(state);
+  assert.ok(result.woodProduced <= 1.3);
+  assert.ok(state.forestReserve >= 0);
+  const barren = newGame();
+  barren.forestReserve = 0;
+  advanceDay(barren);
+  assert.ok(barren.forestReserve > 0);
+});
+test('el administrador asigna aldeanos libres a los campos ante una escasez', () => {
+  const state = newGame(); state.food = 1;
+  const farm = state.buildings.find((building) => building.kind === 'farm');
+  farm.workers = 1;
+  advanceDay(state);
+  assert.ok(farm.workers > 1);
+  assert.ok(farm.workers <= BUILDINGS.farm.slots);
+});
+test('el territorio ampliado permite construir asentamientos lejanos', () => {
+  const state = newGame();
+  assert.equal(canPlace(state, 'house', 165, -140).valid, true);
+  assert.equal(canPlace(state, 'house', 205, 0).valid, false);
 });

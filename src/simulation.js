@@ -14,6 +14,7 @@ export const BUILDINGS = {
 
 export const SEASONS = ['Primavera', 'Verano', 'Otoño', 'Invierno'];
 const SAVE_KEY = 'valdemar-save-v2';
+export const MAX_BUILD_DISTANCE = 195;
 
 export function newGame() {
   return {
@@ -32,6 +33,7 @@ export function newGame() {
     fishStock: 100,
     livestock: 2,
     manure: 16,
+    forestReserve: 180,
     weather: weatherForDay(1),
     buildings: [
       { id: 1, kind: 'tower', x: -8, z: -16, workers: 0, permanent: true, rotation: 0 },
@@ -115,7 +117,7 @@ export function canAfford(state, kind) {
 
 export function canPlace(state, kind, x, z) {
   const spec = BUILDINGS[kind];
-  if (!spec || Math.abs(x) > 78 || Math.abs(z) > 78) return { valid: false, reason: 'Fuera de los límites del valle.' };
+  if (!spec || Math.abs(x) > MAX_BUILD_DISTANCE || Math.abs(z) > MAX_BUILD_DISTANCE) return { valid: false, reason: 'Fuera de los límites del valle.' };
   const riverX = 18 + Math.sin(z * 0.042) * 3.8;
   const riverDistance = Math.abs(x - riverX);
   if (kind === 'fishery') {
@@ -283,6 +285,18 @@ export function advanceDay(state) {
   }
   const weather = weatherForDay(state.day, season);
   state.weather = weather;
+  // The steward mobilizes idle villagers to protect food reserves when scarcity approaches.
+  const foodSafetyReserve = state.population * 5;
+  if (state.food < foodSafetyReserve) {
+    let reassigned = 0;
+    for (const farm of state.buildings.filter((building) => building.kind === 'farm')) {
+      if (state.food >= foodSafetyReserve || freeWorkers(state) <= 0) break;
+      while (farm.workers < BUILDINGS.farm.slots && freeWorkers(state) > 0 && state.food < foodSafetyReserve) {
+        farm.workers += 1; reassigned += 1;
+      }
+    }
+    if (reassigned > 0) state.notices.unshift('El administrador ha reforzado los campos: ' + reassigned + ' aldeano(s) más trabajan para alimentar al reino.');
+  }
   const seasonFactor = season === 'Invierno' ? 0.32 : season === 'Verano' ? 1.2 : season === 'Otoño' ? 0.92 : 1.08;
   const cropWeatherFactor = weather === 'Lluvia' ? 1.18
     : weather === 'Tormenta' ? 1.12
@@ -295,6 +309,7 @@ export function advanceDay(state) {
   let woodProduced = 0;
   let stoneProduced = 0;
   let goldProduced = 0;
+  let forestReserve = Math.max(0, Math.min(180, Number(state.forestReserve ?? 180)));
   let huntingWorkers = 0;
   let fishingWorkers = 0;
   for (const building of state.buildings) {
@@ -305,7 +320,11 @@ export function advanceDay(state) {
       foodProduced += workers * 2.55 * growingFactor * soilFactor;
       building.fertility = Math.max(0, fertility - (workers > 0 ? 0.06 + workers * 0.12 : 0.015));
     }
-    if (building.kind === 'sawmill') woodProduced += workers * 1.65;
+    if (building.kind === 'sawmill') {
+      const forestYield = 0.45 + 0.55 * Math.min(1, forestReserve / 180);
+      const harvested = Math.min(forestReserve, workers * 1.65 * forestYield);
+      woodProduced += harvested; forestReserve = Math.max(0, forestReserve - harvested);
+    }
     if (building.kind === 'quarry') stoneProduced += workers * 1.1;
     if (building.kind === 'market') goldProduced += workers * 1.25;
     if (building.kind === 'hunter') huntingWorkers += workers;
@@ -314,6 +333,8 @@ export function advanceDay(state) {
   const wildlifeFactor = state.wildlife <= 0 ? 0 : 0.25 + 0.75 * Math.min(1, state.wildlife / 30);
   const huntedFood = huntingWorkers * 1.85 * seasonFactor * wildlifeFactor;
   foodProduced += huntedFood;
+  forestReserve = Math.min(180, forestReserve + (forestReserve < 35 ? 0.55 : 0.28));
+  state.forestReserve = forestReserve;
   const wildlifeRecovery = season === 'Invierno' ? 0.45 : weather === 'Sequía' ? 0.65 : (weather === 'Lluvia' || weather === 'Tormenta') ? 1.4 : 1.15;
   state.wildlife = Math.min(100, Math.max(0, state.wildlife + wildlifeRecovery - huntingWorkers * 1.05));
   const fishRecovery = weather === 'Tormenta' ? 2.1 : weather === 'Lluvia' ? 2.0 : weather === 'Sequía' ? 0.7 : 1.5;
@@ -456,6 +477,7 @@ export function loadGame() {
       fishStock: Math.min(100, Math.max(0, Number(saved.fishStock ?? 100))),
       livestock: Math.max(0, Math.floor(Number(saved.livestock ?? 2))),
       manure: Math.max(0, Number(saved.manure ?? 16)),
+      forestReserve: Math.max(0, Math.min(180, Number(saved.forestReserve ?? 180))),
       weather: saved.weather || weatherForDay(Math.max(1, Number(saved.day) || 1)),
       notices: Array.isArray(saved.notices) ? saved.notices.slice(0, 8) : [],
       buildings: saved.buildings.filter((b) => b && BUILDINGS[b.kind]).map((b, index) => ({

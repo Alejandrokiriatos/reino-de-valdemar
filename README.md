@@ -1,6 +1,6 @@
-# Reino de Valdemar — 2.0.0
+# Reino de Valdemar — 2.1.0
 
-Juego de estrategia y construcción medieval 3D creado desde cero con Three.js, Vite y Electron. La versión 2.0 añade caravanas mercantes con visitas periódicas, inventario limitado y comercio de recursos, además de una carreta de comerciantes visible en el asentamiento. Agricultura y ganadería siguen conectadas: el ganado necesita alimento y espacio, produce leche y abono, puede reproducirse y ayuda a recuperar la fertilidad de los campos.
+Juego de estrategia y construcción medieval 3D creado desde cero con Three.js, Vite y Electron. La versión 2.1 amplía el valle a 420 × 420 unidades, incorpora cuatro civilizaciones vecinas, bosques más densos y materiales procedurales con textura y relieve para suelo, madera, piedra, tejados y caminos. Se corrige la cámara orbital, se detallan los aldeanos y los leñadores salen al bosque a talar árboles, dejar tocones y regresar con troncos. El administrador de subsistencia prioriza las granjas cuando escasea la comida.
 
 ## Ejecutar en Windows
 
@@ -22,8 +22,9 @@ Para generar un ejecutable portable en Windows:
 - Clic izquierdo sobre un edificio para inspeccionarlo.
 - Selecciona una estructura del panel y haz clic en terreno libre para construirla.
 - Pulsa Escape para cancelar el modo de construcción.
-- Botón derecho y arrastrar para desplazar la cámara.
-- Rueda del ratón para acercar o alejar.
+- Botón derecho y arrastrar para orbitar la cámara; ambos ejes siguen el gesto.
+- Botón central y arrastrar para desplazar el mapa; también funciona con Mayús + botón izquierdo.
+- Rueda del ratón para acercar o alejar, con un rango mucho mayor.
 - Pulsa B para plegar el panel de construcción.
 - Pulsa F o el botón de calendario para consultar el pronóstico de los próximos tres días.
 - Espacio para pausar o reanudar.
@@ -32,7 +33,14 @@ Para generar un ejecutable portable en Windows:
 
 ## Sistemas incluidos
 
-- Mundo 3D procedural con colinas, terreno con variación de color, río curvo, hierba, bosques, matorrales y rocas.
+- Mundo 3D procedural de 420 × 420 unidades, con más de nueve mil matas de hierba, grandes bosques agrupados, matorrales, rocas y relieve de mayor densidad.
+- Texturas procedurales de alta resolución con mapas de relieve para terreno, caminos, madera, corteza, piedra, yeso, tejados y telas; no dependen de recursos externos ni licencias de terceros.
+- Cuatro civilizaciones vecinas con siete casas, torre central, estandartes y rótulos propios.
+- Aldeanos con rostro, ojos, sombrero, cinturón, bolsa, botas y vestimenta con mayor detalle.
+- Cámara orbital corregida, desplazamiento independiente, límites adaptados al mapa y zoom ampliado.
+- Leñadores que caminan hasta árboles reales, talan, dejan tocones visibles y transportan troncos al almacén; los árboles vuelven a crecer lentamente.
+- Reserva forestal económica: la madera disponible depende del bosque y su regeneración es gradual.
+- Administrador que reasigna mano de obra libre a las granjas cuando la comida baja de cinco días de consumo.
 - Vegetación instanciada para reducir llamadas de dibujo y mejorar el rendimiento.
 - Ciclo día/noche, niebla, sombras, fogata animada con humo y cambios estacionales.
 - Clima diario: cielos despejados, nubes, lluvia, tormentas, sequía y nieve.
