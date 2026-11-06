@@ -78,7 +78,7 @@ function updateHud() {
   $('#storageCapacity').textContent = Math.floor(stored) + ' / ' + capacity;
   $('#storageBar').style.width = (capacity ? Math.min(100, stored / capacity * 100) : 0) + '%';
   $('#season').textContent = season;
-  const weatherIcon = { Despejado: '☀', Nublado: '☁', Lluvia: '🌧', Sequía: '☀', Nieve: '❄' };
+  const weatherIcon = { Despejado: '☀', Nublado: '☁', Lluvia: '🌧', Tormenta: '⛈', Sequía: '☀', Nieve: '❄' };
   $('#weather').textContent = (weatherIcon[state.weather] || '☁') + ' ' + (state.weather || weatherForDay(state.day));
   $('#day').textContent = 'Día ' + state.day;
   $('#freeWorkers').textContent = freeWorkers(state);
@@ -348,7 +348,7 @@ function advanceSimulationDay() {
     lastStatus = state.notices[0];
     notify(state.notices[0], true);
   } else if (result.previousWeather !== result.weather) {
-    notify('El tiempo cambia a ' + result.weather.toLowerCase() + '.', true);
+    notify(result.weather === 'Tormenta' ? '¡Tormenta en el valle! La lluvia y el viento dificultan los desplazamientos.' : 'El tiempo cambia a ' + result.weather.toLowerCase() + '.', true);
   }
   if (state.morale <= 0 || state.population <= 1) {
     setPaused(true);
