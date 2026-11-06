@@ -9,8 +9,8 @@ test('a new settlement starts with consistent population and housing', () => {
   const state = newGame();
   assert.equal(state.population, 12);
   assert.equal(housingCapacity(state), 12);
-  assert.equal(freeWorkers(state), 9);
-  assert.equal(state.buildings.length, 6);
+  assert.equal(freeWorkers(state), 8);
+  assert.equal(state.buildings.length, 7);
   assert.ok(state.buildings.some((building) => building.kind === 'storehouse' && building.permanent));
 });
 
@@ -49,7 +49,7 @@ test('winter changes crop output and consumes heating wood', () => {
 test('wells provide a small daily morale benefit', () => {
   const withoutWell = newGame();
   const withWell = newGame();
-  withWell.buildings.push({ id: 7, kind: 'well', x: 32, z: 32, workers: 0 });
+  withWell.buildings.push({ id: 10, kind: 'well', x: 32, z: 32, workers: 0 });
   advanceDay(withoutWell);
   advanceDay(withWell);
   assert.ok(withWell.morale > withoutWell.morale);
@@ -68,6 +68,7 @@ test('hunting produces food but wildlife herds recover when not hunted', () => {
   assert.equal(depletedResult.huntedFood, 0);
   const resting = newGame();
   resting.wildlife = 40;
+  resting.buildings.find((building) => building.kind === 'hunter').workers = 0;
   advanceDay(resting);
   assert.ok(resting.wildlife > 40);
 });
