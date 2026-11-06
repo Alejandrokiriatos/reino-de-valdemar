@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { createWorld, terrainHeight } from './world.js';
 import {
-  BUILDINGS, SEASONS, newGame, housingCapacity, storageCapacity, storedResources, assignedWorkers, freeWorkers,
-  seasonForDay, weatherForDay, canAfford, canPlace, placeBuilding, changeWorkers, demolishBuilding,
+  BUILDINGS, SEASONS, newGame, housingCapacity, storageCapacity, storedResources, livestockCapacity, assignedWorkers, freeWorkers,
+  seasonForDay, weatherForDay, canAfford, canPlace, placeBuilding, changeWorkers, demolishBuilding, buyLivestock, fertilizeFarm,
   advanceDay, saveGame, loadGame, saveKeyExists
 } from './simulation.js';
 import './world.css';
@@ -39,7 +39,8 @@ const BUILD_LABELS = {
   well: 'Pozo',
   storehouse: 'Almacén',
   hunter: 'Cabaña de cazadores',
-  fishery: 'Puesto de pesca'
+  fishery: 'Puesto de pesca',
+  stable: 'Establo y corral'
 };
 
 const BUILD_DESC = {
@@ -52,7 +53,8 @@ const BUILD_DESC = {
   well: 'Asegura un punto de agua y mejora la vida de la aldea.',
   storehouse: 'Centro de acopio con 450 unidades de capacidad adicional. Amplía los almacenes cuando la producción empiece a desbordarse.',
   hunter: 'Los cazadores recorren los bosques, obtienen carne y dependen de que la fauna pueda recuperarse.',
-  fishery: 'Pesca en el río. Si se captura demasiado, las poblaciones de peces necesitan tiempo para recuperarse.'
+  fishery: 'Pesca en el río. Si se captura demasiado, las poblaciones de peces necesitan tiempo para recuperarse.',
+  stable: 'Cría ganado, obtiene leche y produce abono. Los animales necesitan alimento y espacio para reproducirse.'
 };
 
 function updateForecast() {
@@ -102,6 +104,7 @@ function updateHud() {
   $('#wood').textContent = Math.floor(state.wood);
   $('#stone').textContent = Math.floor(state.stone);
   $('#gold').textContent = Math.floor(state.gold);
+  $('#manure').textContent = Math.floor(state.manure || 0);
   $('#people').textContent = state.population;
   $('#housing').textContent = housingCapacity(state);
   const capacity = storageCapacity(state);
@@ -118,6 +121,9 @@ function updateHud() {
   $('#wildlifeBar').style.width = state.wildlife + '%';
   $('#fishStock').textContent = Math.round(state.fishStock) + '%';
   $('#fishBar').style.width = state.fishStock + '%';
+  const herdCapacity = livestockCapacity(state);
+  $('#livestockCount').textContent = (state.livestock || 0) + ' / ' + herdCapacity;
+  $('#livestockBar').style.width = (herdCapacity ? Math.min(100, (state.livestock || 0) / herdCapacity * 100) : 0) + '%';
   const deliveries = world.getDeliveryCounts();
   $('#logistics').textContent = '🌾 ' + deliveries.food + '  ·  🪵 ' + deliveries.wood + '  ·  🪨 ' + deliveries.stone + '  ·  🪙 ' + deliveries.gold;
   $('#morale').style.width = state.morale + '%';
@@ -139,11 +145,13 @@ function addWorldBuildings() {
   state.buildings.forEach((building) => world.addBuilding(building));
   world.setPopulation(state.population, true);
   world.setJobs(state.buildings);
+  world.setLivestock(state.livestock);
   const initialStockpiles = state.stockpiles || {
     food: Math.ceil(state.food / 24),
     wood: Math.ceil(state.wood / 12),
     stone: Math.ceil(state.stone / 10),
-    gold: Math.ceil(state.gold / 12)
+    gold: Math.ceil(state.gold / 12),
+    manure: Math.ceil((state.manure || 0) / 6)
   };
   world.setDeliveryCounts(initialStockpiles);
   state.stockpiles = world.getDeliveryCounts();
@@ -245,8 +253,23 @@ function inspectBuilding(id) {
   $('#inspectWorkers').textContent = building.workers + ' / ' + spec.slots;
   $('#inspectCapacity').textContent = spec.storage
     ? storageCapacity(state) + ' unidades de capacidad'
+    : spec.livestockCapacity ? spec.livestockCapacity + ' plazas de ganado por establo'
     : spec.housing ? '+' + spec.housing + ' plazas'
     : (spec.slots ? spec.slots + ' puestos' : 'Servicio comunitario');
+  const farm = building.kind === 'farm';
+  $('#farmSoil').classList.toggle('hidden', !farm);
+  if (farm) {
+    const fertility = Math.round(building.fertility ?? 100);
+    $('#farmFertility').textContent = fertility + '%';
+    $('#farmFertilityBar').style.width = fertility + '%';
+    $('#fertilizeFarm').disabled = (state.manure || 0) < 8 || fertility >= 99;
+  }
+  const stable = building.kind === 'stable';
+  $('#stableControls').classList.toggle('hidden', !stable);
+  if (stable) {
+    $('#livestockInfo').textContent = (state.livestock || 0) + ' / ' + livestockCapacity(state) + ' animales en los corrales';
+    $('#buyLivestock').disabled = (state.livestock || 0) >= livestockCapacity(state) || state.gold < 8;
+  }
   $('#workerPlus').disabled = building.workers >= spec.slots || freeWorkers(state) <= 0;
   $('#workerMinus').disabled = building.workers <= 0;
   $('#demolish').disabled = building.permanent;
@@ -255,6 +278,7 @@ function inspectBuilding(id) {
 
 function refreshJobs() {
   world.setJobs(state.buildings);
+  world.setLivestock(state.livestock);
   updateHud();
   if (selectedId !== null) inspectBuilding(selectedId);
 }
@@ -281,6 +305,25 @@ function onDemolish() {
   $('#inspector').classList.add('hidden');
   refreshJobs();
   notify(result.message, true);
+}
+
+function onBuyLivestock() {
+  if (selectedId === null) return;
+  const result = buyLivestock(state, 1);
+  notify(result.message, !result.ok);
+  if (result.ok) {
+    world.setLivestock(state.livestock);
+    updateHud();
+  }
+  inspectBuilding(selectedId);
+}
+
+function onFertilizeFarm() {
+  if (selectedId === null) return;
+  const result = fertilizeFarm(state, selectedId);
+  notify(result.message, !result.ok);
+  if (result.ok) updateHud();
+  inspectBuilding(selectedId);
 }
 
 function pointerRay(event) {
@@ -370,13 +413,14 @@ function advanceSimulationDay() {
   world.setPopulation(state.population);
   world.setJobs(state.buildings);
   updateHud();
-  const report = 'Día ' + state.day + ': +' + result.foodStored.toFixed(0) + ' comida almacenada, -' + result.foodConsumed.toFixed(0) +
-    ' comida, +' + result.woodStored.toFixed(0) + ' madera, -' + result.woodConsumed.toFixed(0) +
-    ' leña, +' + result.stoneStored.toFixed(0) + ' piedra.';
+  world.setLivestock(state.livestock);
+  const report = 'Día ' + state.day + ': +' + result.foodStored.toFixed(0) + ' comida, +' + result.manureStored.toFixed(0) +
+    ' abono almacenado, -' + result.totalFoodConsumed.toFixed(0) + ' alimento consumido, +' + result.woodStored.toFixed(0) +
+    ' madera, +' + result.stoneStored.toFixed(0) + ' piedra.';
   const productionLost = (result.foodProduced - result.foodStored)
     + (result.woodProduced - result.woodStored)
     + (result.stoneProduced - result.stoneStored)
-    + (result.goldProduced - result.goldStored);
+    + (result.goldProduced - result.goldStored) + (result.manureProduced - result.manureStored);
   notify(productionLost > 0.01 ? report + ' El almacén está lleno: parte de la producción se perdió.' : report, productionLost > 0.01);
   if (result.previousWeather !== result.weather) {
     const weatherNotice = state.notices.find((notice) => notice.startsWith('El tiempo cambia:'));
@@ -414,6 +458,8 @@ $('#closeInspector').addEventListener('click', () => inspectBuilding(null));
 $('#workerPlus').addEventListener('click', () => onWorkerChange(1));
 $('#workerMinus').addEventListener('click', () => onWorkerChange(-1));
 $('#demolish').addEventListener('click', onDemolish);
+$('#buyLivestock').addEventListener('click', onBuyLivestock);
+$('#fertilizeFarm').addEventListener('click', onFertilizeFarm);
 $('#quality').addEventListener('change', (event) => world.setQuality(event.target.value));
 $('#shadows').addEventListener('change', (event) => {
   world.renderer.shadowMap.enabled = event.target.checked;
