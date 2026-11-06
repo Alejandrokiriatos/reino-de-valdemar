@@ -73,8 +73,11 @@ function makeRock(scene, x, z, stoneMaterial, scale = 1) {
   scene.add(rock);
 }
 
-function makeRoad(scene, points, width = 2.2) {
-  const curve = new THREE.CatmullRomCurve3(points.map(([x, z]) => new THREE.Vector3(x, terrainHeight(x, z) + 0.045, z)));
+function makeRoad(scene, points, width = 2.2, heightOffset = 0.045) {
+  const curve = new THREE.CatmullRomCurve3(points.map(([x, z]) => {
+    const offset = typeof heightOffset === 'function' ? heightOffset(x, z) : heightOffset;
+    return new THREE.Vector3(x, terrainHeight(x, z) + offset, z);
+  }));
   const vertices = [];
   const indices = [];
   const segments = 70;
@@ -611,6 +614,7 @@ export function createWorld(root) {
   const buildings = [];
   const roads = [];
   const roadPaths = [];
+  const bridgeRoadPaths = new Set();
   const buildingRoads = new Map();
   const villagers = [];
   const deer = [];
@@ -759,6 +763,55 @@ export function createWorld(root) {
     roadPaths.push(points);
   });
 
+  // A timber bridge gives both banks a connected pedestrian and cart route.
+  const westRamp = [[4, -5], [7, -6], [10, -8]];
+  const bridgeRoute = [[10, -8], [12.8, -8], [16.8, -8], [20.8, -8], [24, -8]];
+  const eastRoad = [[24, -8], [29, -6], [35, -3], [42, 1], [49, 7]];
+  const westRampMesh = makeRoad(scene, westRamp, 2.7, 0.045);
+  westRampMesh.material = roadMat;
+  roads.push(westRampMesh);
+  roadPaths.push(westRamp);
+
+  const bridgeOffset = (x, z) => {
+    const riverX = 18 + Math.sin(z * 0.042) * 3.8;
+    const distance = (x - riverX) / 5.2;
+    return 0.16 + Math.exp(-(distance * distance)) * 0.68;
+  };
+  const bridgeMesh = makeRoad(scene, bridgeRoute, 3.7, bridgeOffset);
+  bridgeMesh.material = material(0x76563a, 0.92);
+  bridgeMesh.receiveShadow = true;
+  roads.push(bridgeMesh);
+  roadPaths.push(bridgeRoute);
+  bridgeRoadPaths.add(bridgeRoute);
+
+  const bridgeDetails = new THREE.Group();
+  const bridgePlank = material(0x806044);
+  const bridgeDark = material(0x493526);
+  const riverCenter = 18 + Math.sin(-8 * 0.042) * 3.8;
+  for (let x = 10.2; x <= 24.1; x += 0.58) {
+    addBox(bridgeDetails, x, 0.62, -8, 0.54, 0.16, 3.65, bridgePlank, true);
+  }
+  for (const side of [-1, 1]) {
+    for (let x = 10.5; x <= 24; x += 2.25) {
+      addBox(bridgeDetails, x, 1.05, -8 + side * 1.7, 0.18, 0.92, 0.18, bridgeDark, true);
+    }
+    addBox(bridgeDetails, 17.1, 1.46, -8 + side * 1.7, 13.6, 0.17, 0.18, bridgePlank, true);
+    addBox(bridgeDetails, 17.1, 0.86, -8 + side * 1.7, 13.6, 0.14, 0.14, bridgeDark, true);
+  }
+  for (const x of [13.2, riverCenter, 20.4]) {
+    const pier = addCylinder(bridgeDetails, x, -0.12, -8, 0.26, 0.34, 1.5, bridgeDark, 7);
+    pier.position.y = -0.12;
+    for (const side of [-1, 1]) {
+      addBox(bridgeDetails, x, 0.38, -8 + side * 0.92, 0.22, 0.22, 1.7, bridgeDark, true);
+    }
+  }
+  scene.add(bridgeDetails);
+
+  const eastRoadMesh = makeRoad(scene, eastRoad, 2.3, 0.045);
+  eastRoadMesh.material = roadMat;
+  roads.push(eastRoadMesh);
+  roadPaths.push(eastRoad);
+
   function emptyStockyard() {
     stockyard.traverse((child) => {
       if (child !== stockyard) child.geometry?.dispose?.();
@@ -854,11 +907,12 @@ export function createWorld(root) {
     for (const key of Object.keys(deliveryCounts)) deliveryCounts[key] = 0;
   }
 
-  function addRoadPath(points, width = 1.8) {
-    const road = makeRoad(scene, points, width);
+  function addRoadPath(points, width = 1.8, heightOffset = 0.045, isBridge = false) {
+    const road = makeRoad(scene, points, width, heightOffset);
     road.material = roadMat;
     roads.push(road);
     roadPaths.push(points);
+    if (isBridge) bridgeRoadPaths.add(points);
     return road;
   }
 
@@ -870,9 +924,7 @@ export function createWorld(root) {
 
   function findRoadRoute(start, destination) {
     const direct = [destination.clone()];
-    if (!roadPaths.length || roadBankSide(start.x, start.z) !== roadBankSide(destination.x, destination.z)) {
-      return direct;
-    }
+    if (!roadPaths.length) return direct;
 
     const nodes = [];
     const nodeLookup = new Map();
@@ -884,11 +936,11 @@ export function createWorld(root) {
       nodeLookup.set(key, index);
       return index;
     };
-    const link = (a, b) => {
+    const link = (a, b, allowCrossBank = false) => {
       if (a === b) return;
       const A = nodes[a];
       const B = nodes[b];
-      if (!A || !B || A.bank !== B.bank) return;
+      if (!A || !B || (!allowCrossBank && A.bank !== B.bank)) return;
       const cost = Math.hypot(A.x - B.x, A.z - B.z);
       if (cost < 0.05 || A.edges.some((edge) => edge.to === b)) return;
       A.edges.push({ to: b, cost });
@@ -897,7 +949,9 @@ export function createWorld(root) {
 
     roadPaths.forEach((path) => {
       const sequence = path.map(([x, z]) => getNode(x, z));
-      for (let i = 0; i < sequence.length - 1; i++) link(sequence[i], sequence[i + 1]);
+      for (let i = 0; i < sequence.length - 1; i++) {
+        link(sequence[i], sequence[i + 1], bridgeRoadPaths.has(path));
+      }
     });
 
     // Join road branches whose endpoints or crossings nearly touch.
