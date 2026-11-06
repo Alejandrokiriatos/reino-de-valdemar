@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Reino de Valdemar</title></head><body>
+<div id="game"></div>
+<div id="hud" class="hidden">
+<header><div class="crest">♜</div><div><b>VALDEMAR</b><small>EL VALLE DE LOS PRIMEROS REYES</small></div><div class="resources"><span>🌾 <b id="food">120</b></span><span>🪵 <b id="wood">90</b></span><span>🪨 <b id="stone">65</b></span><span>👥 <b id="people">12</b></span><span>☀️ <b id="season">Primavera · Día 1</b></span></div><button id="menuBtn">☰ Reino</button></header>
+<aside class="panel"><h3>CONSEJO DEL REINO</h3><p id="message">El valle espera tus órdenes, señor.</p><hr><h4>CONSTRUIR</h4><button data-build="house">⌂ Casa <small>30 madera</small></button><button data-build="farm">♧ Granja <small>25 madera</small></button><button data-build="sawmill">⚒ Aserradero <small>40 madera</small></button><button data-build="tower">♜ Torre <small>35 madera · 20 piedra</small></button><p class="hint">Selecciona una estructura y pulsa sobre el terreno. Clic derecho para mover cámara.</p></aside>
+<footer><span id="status">Tu reino comienza con una pequeña aldea.</span><div><button id="pause">Ⅱ Pausar</button><button id="save">Guardar</button></div></footer>
+</div>
+<div id="mainmenu"><div class="menu-card"><div class="sigil">♜</div><p class="eyebrow">CRÓNICAS DE UN REINO OLVIDADO</p><h1>REINO DE<br><em>VALDEMAR</em></h1><p class="subtitle">Donde cada piedra guarda una historia.</p><button id="newGame" class="primary">NUEVA PARTIDA</button><button id="continue">CONTINUAR</button><button id="options">OPCIONES</button><div id="optionsBox" class="hidden"><label>Calidad gráfica <select id="quality"><option value="low">Baja</option><option value="medium" selected>Media</option><option value="high">Alta</option></select></label><label><input id="shadows" type="checkbox" checked> Sombras</label></div><small>VERSIÓN 1.4.0 · DESARROLLO EN CURSO</small></div></div>
+<script type="module" src="/src/main.js"></script></body></html>
