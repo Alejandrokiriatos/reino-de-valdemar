@@ -965,9 +965,11 @@ export function createWorld(root) {
     indices.reverse();
 
     const route = [];
-    indices.slice(1).forEach((index) => {
+    indices.forEach((index, position) => {
       const node = nodes[index];
       const point = new THREE.Vector3(node.x, 0, node.z);
+      // Include the road access node unless the worker is already standing on it.
+      if (position === 0 && point.distanceTo(start) <= 1.15) return;
       if (!route.length || route[route.length - 1].distanceTo(point) > 1.15) route.push(point);
     });
     if (!route.length || route[route.length - 1].distanceTo(destination) > 0.7) route.push(destination.clone());
