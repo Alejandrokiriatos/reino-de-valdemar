@@ -50,7 +50,7 @@ const BUILD_DESC = {
   tower: 'Vigila los caminos y refuerza la defensa del asentamiento.',
   market: 'Genera oro y mejora el ánimo de los habitantes.',
   well: 'Asegura un punto de agua y mejora la vida de la aldea.',
-  storehouse: 'Centro de acopio. Los trabajadores llevan hasta aquí los productos de sus talleres.',
+  storehouse: 'Centro de acopio con 450 unidades de capacidad adicional. Amplía los almacenes cuando la producción empiece a desbordarse.',
   hunter: 'Los cazadores recorren los bosques, obtienen carne y dependen de que la fauna pueda recuperarse.',
   fishery: 'Pesca en el río. Si se captura demasiado, las poblaciones de peces necesitan tiempo para recuperarse.'
 };
@@ -198,7 +198,10 @@ function inspectBuilding(id) {
   $('#inspectDescription').textContent = BUILD_DESC[building.kind];
   $('#inspectLevel').textContent = building.permanent ? 'Edificio fundador' : 'Construcción de la aldea';
   $('#inspectWorkers').textContent = building.workers + ' / ' + spec.slots;
-  $('#inspectCapacity').textContent = spec.housing ? '+' + spec.housing + ' plazas' : (spec.slots ? spec.slots + ' puestos' : 'Servicio comunitario');
+  $('#inspectCapacity').textContent = spec.storage
+    ? storageCapacity(state) + ' unidades de capacidad'
+    : spec.housing ? '+' + spec.housing + ' plazas'
+    : (spec.slots ? spec.slots + ' puestos' : 'Servicio comunitario');
   $('#workerPlus').disabled = building.workers >= spec.slots || freeWorkers(state) <= 0;
   $('#workerMinus').disabled = building.workers <= 0;
   $('#demolish').disabled = building.permanent;
@@ -321,10 +324,14 @@ function advanceSimulationDay() {
   world.setPopulation(state.population);
   world.setJobs(state.buildings);
   updateHud();
-  const report = 'Día ' + state.day + ': +' + result.foodProduced.toFixed(0) + ' comida, -' + result.foodConsumed.toFixed(0) +
-    ' comida, +' + result.woodProduced.toFixed(0) + ' madera, -' + result.woodConsumed.toFixed(0) +
-    ' leña, +' + result.stoneProduced.toFixed(0) + ' piedra.';
-  notify(report);
+  const report = 'Día ' + state.day + ': +' + result.foodStored.toFixed(0) + ' comida almacenada, -' + result.foodConsumed.toFixed(0) +
+    ' comida, +' + result.woodStored.toFixed(0) + ' madera, -' + result.woodConsumed.toFixed(0) +
+    ' leña, +' + result.stoneStored.toFixed(0) + ' piedra.';
+  const productionLost = (result.foodProduced - result.foodStored)
+    + (result.woodProduced - result.woodStored)
+    + (result.stoneProduced - result.stoneStored)
+    + (result.goldProduced - result.goldStored);
+  notify(productionLost > 0.01 ? report + ' El almacén está lleno: parte de la producción se perdió.' : report, productionLost > 0.01);
   if (state.notices[0] && state.notices[0] !== lastStatus) {
     lastStatus = state.notices[0];
     notify(state.notices[0], true);
