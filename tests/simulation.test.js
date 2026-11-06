@@ -219,10 +219,11 @@ test('farm fertility declines with cultivation and can be restored with manure',
   for (let day = 0; day < 4; day++) advanceDay(state);
   assert.ok(farm.fertility < 99);
   const before = farm.fertility;
+  const manureBeforeFertilizing = state.manure;
   const result = fertilizeFarm(state, farm.id);
   assert.equal(result.ok, true);
   assert.ok(farm.fertility > before);
-  assert.equal(state.manure, startingManure - 8);
+  assert.equal(state.manure, manureBeforeFertilizing - 8);
   assert.equal(fertilizeFarm(state, 999).ok, false);
   const addedStable = { id: 15, kind: 'stable', x: 50, z: 40, workers: 0, permanent: false };
   state.buildings.push(addedStable);
