@@ -460,7 +460,7 @@ function frame(time) {
     }
     worldClock += scaledDt;
   }
-  world.update(scaledDt, worldClock, dayClock / 42, seasonForDay(state.day), state.weather || weatherForDay(state.day));
+  world.update(scaledDt, worldClock, dayClock / 42, seasonForDay(state.day), state.weather || weatherForDay(state.day), state.wildlife);
   world.camera.lookAt(target);
   world.render();
 }
