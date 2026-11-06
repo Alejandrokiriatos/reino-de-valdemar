@@ -1247,11 +1247,13 @@ export function createWorld(root) {
   }
 
   function update(dt, elapsed, dayProgress = 0.35, season = 'Primavera', weather = 'Despejado') {
-    const rainy = weather === 'Lluvia';
+    const stormy = weather === 'Tormenta';
+    const rainy = weather === 'Lluvia' || stormy;
     const snowy = weather === 'Nieve';
     const dry = weather === 'Sequía';
     const overcast = weather === 'Nublado' || rainy || snowy;
-    const overcastStrength = rainy ? 0.38 : snowy ? 0.43 : overcast ? 0.29 : 0;
+    const overcastStrength = stormy ? 0.55 : rainy ? 0.38 : snowy ? 0.43 : overcast ? 0.29 : 0;
+    const lightning = stormy ? Math.pow(Math.max(0, Math.sin(elapsed * 1.85 + 0.7)), 28) : 0;
     water.material.opacity = (rainy ? 0.93 : 0.86) + Math.sin(elapsed * 0.8) * 0.035;
     water.position.y = Math.sin(elapsed * 0.48) * 0.025;
     const angle = dayProgress * Math.PI * 2;
@@ -1259,10 +1261,12 @@ export function createWorld(root) {
     ground.material.color.setHex(seasonalGround[season] || seasonalGround.Primavera);
     if (snowy) ground.material.color.lerp(new THREE.Color(0xcbd3cc), 0.38);
     else if (dry) ground.material.color.lerp(new THREE.Color(0xb49a5e), 0.24);
-    ground.material.roughness = rainy ? 0.76 : 1;
+    ground.material.roughness = stormy ? 0.64 : rainy ? 0.76 : 1;
     sun.position.set(Math.cos(angle) * 42 - 4, Math.sin(angle) * 38 + 18, 22);
-    sun.intensity = (0.72 + Math.max(0, Math.sin(angle)) * 2.25) * (1 - overcastStrength);
+    sun.intensity = (0.72 + Math.max(0, Math.sin(angle)) * 2.25) * (1 - overcastStrength) + lightning * 4.8;
+    fill.intensity = 0.38 + lightning * 1.5;
     const night = Math.max(0, -Math.sin(angle));
+    rain.material.opacity = stormy ? 0.68 : 0.42;
 
     rain.visible = rainy;
     if (rainy && dt > 0) {
@@ -1270,8 +1274,8 @@ export function createWorld(root) {
       for (let i = 0; i < rainCount; i++) {
         const offset = i * 6;
         const x = positions.array[offset];
-        let y = positions.array[offset + 1] - dt * 22;
-        let z = positions.array[offset + 2] + dt * 1.9;
+        let y = positions.array[offset + 1] - dt * (stormy ? 31 : 22);
+        let z = positions.array[offset + 2] + dt * (stormy ? 4.6 : 1.9);
         if (y < -1) {
           y = 15 + Math.random() * 13;
           positions.array[offset] = (Math.random() - 0.5) * 110;
@@ -1280,9 +1284,9 @@ export function createWorld(root) {
           positions.array[offset + 5] = positions.array[offset + 2] + 0.08;
         }
         positions.array[offset + 1] = y;
-        positions.array[offset + 4] = y - 1.15;
+        positions.array[offset + 4] = y - (stormy ? 1.8 : 1.15);
         positions.array[offset + 2] = z;
-        positions.array[offset + 5] = z + 0.08;
+        positions.array[offset + 5] = z + (stormy ? 0.2 : 0.08);
       }
       positions.needsUpdate = true;
     }
@@ -1316,9 +1320,9 @@ export function createWorld(root) {
     scene.fog.density = 0.0065 + night * 0.0015 + (rainy ? 0.0028 : snowy ? 0.002 : overcast ? 0.001 : 0) + (dry ? -0.0007 : 0);
     const daylight = Math.max(0, Math.sin(angle));
     scene.background.setRGB(
-      (0.64 + daylight * 0.12) * (1 - overcastStrength * 0.2),
-      (0.68 + daylight * 0.1) * (1 - overcastStrength * 0.18),
-      (0.59 + night * 0.1) + (snowy ? 0.12 : rainy ? 0.035 : 0)
+      (0.64 + daylight * 0.12) * (1 - overcastStrength * 0.2) + lightning * 0.22,
+      (0.68 + daylight * 0.1) * (1 - overcastStrength * 0.18) + lightning * 0.24,
+      (0.59 + night * 0.1) + (snowy ? 0.12 : rainy ? 0.035 : 0) + lightning * 0.28
     );
     scene.fog.color.copy(scene.background);
     deer.forEach((animal) => {
@@ -1339,7 +1343,8 @@ export function createWorld(root) {
       const distance = Math.hypot(dx, dz);
       const moving = distance > 0.65;
       if (moving) {
-        const step = Math.min(distance, dt * p.speed);
+        const wildlifeWeatherFactor = (stormy || snowy) ? 0.76 : rainy ? 0.9 : 1;
+        const step = Math.min(distance, dt * p.speed * wildlifeWeatherFactor);
         animal.position.x += (dx / distance) * step;
         animal.position.z += (dz / distance) * step;
         animal.rotation.y = Math.atan2(dx, dz);
@@ -1393,9 +1398,10 @@ export function createWorld(root) {
       const moving = distance > 0.55;
 
       if (moving) {
-        const transportFactor = p.cart.visible
+        const weatherTravelFactor = snowy ? 0.68 : rainy ? 0.84 : 1;
+        const transportFactor = (p.cart.visible
           ? (p.routeUsesRoad ? 1.15 : 0.62)
-          : (p.routeUsesRoad ? 1.12 : 1);
+          : (p.routeUsesRoad ? 1.12 : 1)) * weatherTravelFactor;
         const step = Math.min(distance, dt * p.speed * (p.working ? 1.3 : 1) * transportFactor);
         person.position.x += (dx / distance) * step;
         person.position.z += (dz / distance) * step;
