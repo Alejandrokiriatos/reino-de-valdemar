@@ -554,24 +554,98 @@ export function createWorld(root) {
   grass.receiveShadow = true;
   scene.add(grass);
 
+  const treeLocations = [];
   for (let i = 0; i < 260; i++) {
     const x = (Math.random() - 0.5) * 165;
     const z = (Math.random() - 0.5) * 165;
     if ((Math.abs(x) < 22 && Math.abs(z) < 22) || Math.abs(x - (18 + Math.sin(z * 0.042) * 3.8)) < 9) continue;
-    makeTree(scene, x, z, 0.72 + Math.random() * 0.72, palette);
+    treeLocations.push({ x, z, scale: 0.72 + Math.random() * 0.72, yaw: Math.random() * Math.PI * 2 });
   }
+  const treeTrunks = new THREE.InstancedMesh(
+    new THREE.CylinderGeometry(0.18, 0.28, 2.1, 7), palette.trunk, treeLocations.length
+  );
+  const crownLayers = [0, 1, 2].map((layer) => new THREE.InstancedMesh(
+    new THREE.ConeGeometry(1.25 - layer * 0.2, 2.15, 7),
+    palette.leaves[layer], treeLocations.length
+  ));
+  const treeDummy = new THREE.Object3D();
+  treeLocations.forEach((tree, index) => {
+    const baseY = terrainHeight(tree.x, tree.z);
+    treeDummy.position.set(tree.x, baseY + 1.05 * tree.scale, tree.z);
+    treeDummy.rotation.set(0, tree.yaw, (Math.random() - 0.5) * 0.12);
+    treeDummy.scale.setScalar(tree.scale);
+    treeDummy.updateMatrix();
+    treeTrunks.setMatrixAt(index, treeDummy.matrix);
+    crownLayers.forEach((crown, layer) => {
+      treeDummy.position.set(
+        tree.x + (Math.random() - 0.5) * 0.35 * tree.scale,
+        baseY + (2.25 + layer * 0.78) * tree.scale,
+        tree.z + (Math.random() - 0.5) * 0.35 * tree.scale
+      );
+      treeDummy.rotation.set(0, tree.yaw + Math.random() * Math.PI, 0);
+      treeDummy.scale.setScalar(tree.scale);
+      treeDummy.updateMatrix();
+      crown.setMatrixAt(index, treeDummy.matrix);
+    });
+  });
+  treeTrunks.castShadow = true;
+  treeTrunks.receiveShadow = true;
+  scene.add(treeTrunks);
+  crownLayers.forEach((crown) => {
+    crown.castShadow = true;
+    crown.receiveShadow = true;
+    scene.add(crown);
+  });
+
+  const bushMatrices = [];
   for (let i = 0; i < 105; i++) {
     const x = (Math.random() - 0.5) * 155;
     const z = (Math.random() - 0.5) * 155;
     if ((Math.abs(x) < 18 && Math.abs(z) < 18) || Math.abs(x - 18) < 9) continue;
-    makeBush(scene, x, z, palette, 0.7 + Math.random() * 0.65);
+    const scale = 0.7 + Math.random() * 0.65;
+    for (let puff = 0; puff < 4; puff++) {
+      bushMatrices.push({
+        x: x + (Math.random() - 0.5) * 0.75 * scale,
+        y: terrainHeight(x, z) + 0.35 * scale + Math.random() * 0.2,
+        z: z + (Math.random() - 0.5) * 0.7 * scale,
+        scale: scale * (0.72 + Math.random() * 0.35)
+      });
+    }
   }
+  const bushes = new THREE.InstancedMesh(
+    new THREE.IcosahedronGeometry(0.45, 1), palette.leaves[1], bushMatrices.length
+  );
+  bushMatrices.forEach((bush, index) => {
+    treeDummy.position.set(bush.x, bush.y, bush.z);
+    treeDummy.rotation.set(0, Math.random() * Math.PI, 0);
+    treeDummy.scale.set(bush.scale, bush.scale * 0.78, bush.scale);
+    treeDummy.updateMatrix();
+    bushes.setMatrixAt(index, treeDummy.matrix);
+  });
+  bushes.castShadow = true;
+  bushes.receiveShadow = true;
+  scene.add(bushes);
+
+  const rockLocations = [];
   for (let i = 0; i < 75; i++) {
     const x = (Math.random() - 0.5) * 155;
     const z = (Math.random() - 0.5) * 155;
     if ((Math.abs(x) < 17 && Math.abs(z) < 17) || Math.abs(x - 18) < 8) continue;
-    makeRock(scene, x, z, palette.stone, 0.3 + Math.random() * 0.7);
+    rockLocations.push({ x, z, scale: 0.3 + Math.random() * 0.7 });
   }
+  const rocks = new THREE.InstancedMesh(
+    new THREE.DodecahedronGeometry(1, 0), palette.stone, rockLocations.length
+  );
+  rockLocations.forEach((rock, index) => {
+    treeDummy.position.set(rock.x, terrainHeight(rock.x, rock.z) + rock.scale * 0.38, rock.z);
+    treeDummy.rotation.set(Math.random(), Math.random() * 2, Math.random());
+    treeDummy.scale.set(1.25 * rock.scale, 0.72 * rock.scale, 0.9 * rock.scale);
+    treeDummy.updateMatrix();
+    rocks.setMatrixAt(index, treeDummy.matrix);
+  });
+  rocks.castShadow = true;
+  rocks.receiveShadow = true;
+  scene.add(rocks);
   const herds = [[-45, -38], [-52, 35], [4, 48], [-34, 63]];
   herds.forEach(([x, z], herdIndex) => {
     for (let i = 0; i < 2; i++) deer.push(makeDeer(scene, herdIndex * 2 + i, x, z, palette));
