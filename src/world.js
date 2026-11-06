@@ -1246,7 +1246,7 @@ export function createWorld(root) {
     });
   }
 
-  function update(dt, elapsed, dayProgress = 0.35, season = 'Primavera', weather = 'Despejado') {
+  function update(dt, elapsed, dayProgress = 0.35, season = 'Primavera', weather = 'Despejado', wildlife = 100) {
     const stormy = weather === 'Tormenta';
     const rainy = weather === 'Lluvia' || stormy;
     const snowy = weather === 'Nieve';
@@ -1325,7 +1325,10 @@ export function createWorld(root) {
       (0.59 + night * 0.1) + (snowy ? 0.12 : rainy ? 0.035 : 0) + lightning * 0.28
     );
     scene.fog.color.copy(scene.background);
-    deer.forEach((animal) => {
+    const visibleWildlife = Math.round((deer.length * THREE.MathUtils.clamp(wildlife, 0, 100)) / 100);
+    deer.forEach((animal, animalIndex) => {
+      animal.visible = animalIndex < visibleWildlife;
+      if (!animal.visible) return;
       const p = animal.userData;
       p.phase += dt * p.speed;
       p.wait -= dt;
