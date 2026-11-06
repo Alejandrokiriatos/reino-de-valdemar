@@ -851,6 +851,7 @@ export function createWorld(root) {
   }
 
   function positionStockyard(data) {
+    const savedCounts = { ...deliveryCounts };
     emptyStockyard();
     stockyard.position.set(data.x + 5.1, terrainHeight(data.x + 5.1, data.z + 2.5), data.z + 2.5);
     for (const key of Object.keys(deliveryCounts)) deliveryCounts[key] = 0;
@@ -859,6 +860,7 @@ export function createWorld(root) {
     addBox(stockyard, -0.05, 0.18, 2.55, 6.5, 0.12, 0.12, material(0x493a29), false);
     addBox(stockyard, -3.3, 0.18, 0, 0.12, 0.12, 5.1, material(0x493a29), false);
     addBox(stockyard, 3.2, 0.18, 0, 0.12, 0.12, 5.1, material(0x493a29), false);
+    setDeliveryCounts(savedCounts);
   }
 
   function addDeliveredResource(kind) {
@@ -890,6 +892,7 @@ export function createWorld(root) {
     item.castShadow = true;
     item.receiveShadow = true;
     item.userData.stockItem = true;
+    item.userData.ownsMaterial = kind === 'food' || kind === 'gold';
     stockyard.add(item);
   }
 
@@ -898,6 +901,7 @@ export function createWorld(root) {
       if (!child.userData.stockItem) return;
       stockyard.remove(child);
       child.geometry?.dispose?.();
+      if (child.userData.ownsMaterial) child.material?.dispose?.();
     });
     for (const key of Object.keys(deliveryCounts)) {
       deliveryCounts[key] = 0;
@@ -909,7 +913,9 @@ export function createWorld(root) {
   function addBuilding(data) {
     const group = makeBuildingMesh(data.kind, palette);
     group.position.set(data.x, terrainHeight(data.x, data.z), data.z);
-    if (data.kind === 'storehouse') positionStockyard(data);
+    if (data.kind === 'storehouse' && !buildings.some((item) => item.userData.buildingData?.kind === 'storehouse')) {
+      positionStockyard(data);
+    }
     group.rotation.y = data.rotation || 0;
     group.userData.isBuilding = true;
     group.userData.buildingData = { ...data };
