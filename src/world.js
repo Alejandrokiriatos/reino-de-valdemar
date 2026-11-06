@@ -1011,7 +1011,9 @@ export function createWorld(root) {
 
   function emptyStockyard() {
     stockyard.traverse((child) => {
-      if (child !== stockyard) child.geometry?.dispose?.();
+      if (child === stockyard) return;
+      child.geometry?.dispose?.();
+      if (child.userData.ownsMaterial) child.material?.dispose?.();
     });
     stockyard.clear();
   }
@@ -1062,7 +1064,7 @@ export function createWorld(root) {
     item.castShadow = true;
     item.receiveShadow = true;
     item.userData.stockItem = true;
-    item.userData.ownsMaterial = kind === 'food' || kind === 'gold';
+    item.userData.ownsMaterial = kind === 'food' || kind === 'gold' || kind === 'manure';
     stockyard.add(item);
   }
 
