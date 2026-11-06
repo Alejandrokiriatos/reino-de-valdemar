@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  newGame, housingCapacity, freeWorkers, canPlace, placeBuilding,
+  newGame, housingCapacity, storageCapacity, storedResources, freeWorkers, canPlace, placeBuilding,
   changeWorkers, advanceDay, seasonForDay, loadGame
 } from '../src/simulation.js';
 
@@ -123,4 +123,23 @@ test('fishing requires a river bank and depleted fish stocks recover', () => {
   resting.fishStock = 40;
   advanceDay(resting);
   assert.ok(resting.fishStock > 40);
+});
+
+
+test('storehouses limit shared resources and expansion increases storage', () => {
+  const state = newGame();
+  assert.equal(storageCapacity(state), 650);
+  assert.equal(storedResources(state), 445);
+  state.food = 400;
+  state.wood = 200;
+  state.stone = 50;
+  state.gold = 0;
+  const report = advanceDay(state);
+  assert.ok(storedResources(state) <= storageCapacity(state));
+  assert.ok(report.foodStored < report.foodProduced);
+  state.buildings.push({ id: 12, kind: 'storehouse', x: 50, z: 40, workers: 0, permanent: false });
+  assert.equal(storageCapacity(state), 1100);
+  const afterExpansion = advanceDay(state);
+  assert.ok(afterExpansion.foodStored >= 0);
+  assert.ok(storedResources(state) <= storageCapacity(state));
 });
