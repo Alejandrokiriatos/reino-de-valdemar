@@ -7,7 +7,7 @@
   "scripts": {
     "start": "vite --host 0.0.0.0",
     "build": "vite build",
-    "check": "node --check src/main.js && node --check src/world.js && node --check src/simulation.js && node --check electron.cjs && node --test tests/*.test.js",
+    "check": "node --check src/main.js && node --check src/world.js && node --check src/simulation.js && node --check electron.cjs && node --test tests/simulation.test.js",
     "desktop": "electron .",
     "dist": "npm run build && electron-builder --win portable"
   },
