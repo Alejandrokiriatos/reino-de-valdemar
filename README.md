@@ -22,6 +22,7 @@ Para generar un ejecutable portable en Windows:
 - Clic izquierdo sobre un edificio para inspeccionarlo.
 - Selecciona una estructura del panel y haz clic en terreno libre para construirla.
 - Pulsa Escape para cancelar el modo de construcción.
+- Pulsa F o el botón de calendario para consultar el pronóstico de los próximos tres días.
 - Botón derecho y arrastrar para desplazar la cámara.
 - Rueda del ratón para acercar o alejar.
 - B para plegar el panel de construcción.
@@ -36,6 +37,7 @@ Para generar un ejecutable portable en Windows:
 - Ciclo día/noche, niebla, sombras, fogata animada con humo y cambios estacionales.
 - Clima diario determinista: cielos despejados, nubes, lluvia, tormentas, sequía y nieve.
 - Efectos visuales de lluvia y nieve, relámpagos durante tormentas, luz ambiental y terreno que cambia según el clima.
+- Pronóstico de tres días con consejos para preparar cosechas, leña y desplazamientos.
 - El tiempo afecta a las cosechas, la recuperación de peces, el consumo de leña en nevadas y la velocidad de desplazamiento.
 - Puente de madera transitable que conecta ambas riberas y una red de caminos de aldea.
 - Conexiones de camino automáticas para nuevos edificios; los ramales se eliminan al demoler su edificio.
@@ -44,7 +46,7 @@ Para generar un ejecutable portable en Windows:
 - Patio de almacén con montones visibles de mercancías; los montones y su cantidad visual se conservan al guardar y continuar.
 - Capacidad de almacén compartida por todos los recursos: al llenarse, parte de la producción no se puede almacenar. Los almacenes adicionales amplían la capacidad.
 - Casas, granjas, aserradero, cantera, torre, mercado, pozo, almacén, cabaña de cazadores y puesto de pesca.
-- Ciervos en pequeñas manadas; la caza reduce la fauna y esta se recupera si se deja descansar.
+- Ciervos en pequeñas manadas; la cantidad visible responde a la reserva de fauna, y la caza o la sequía pueden reducirla.
 - Pesca junto al río; las capturas reducen las reservas de peces, que se regeneran con el tiempo.
 - Economía diaria, producción por trabajadores, consumo de alimentos y leña, vivienda, población, ánimo y estaciones.
 - Inspección de edificios, asignación y retirada de trabajadores, demolición y devolución parcial de materiales.
