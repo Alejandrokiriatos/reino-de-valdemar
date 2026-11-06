@@ -1087,6 +1087,7 @@ export function createWorld(root) {
     const start = new THREE.Vector3(person.position.x, 0, person.position.z);
     p.route = findRoadRoute(start, destination);
     p.routeIndex = 0;
+    p.routeUsesRoad = p.route.length > 1;
     p.target.copy(p.route[0] || destination);
   }
 
@@ -1146,6 +1147,7 @@ export function createWorld(root) {
         p.jobBuilding = null;
         p.route = null;
         p.routeIndex = 0;
+        p.routeUsesRoad = false;
         p.state = 'wandering';
         p.wait = Math.random() * 2;
         p.cargo.visible = false;
@@ -1171,6 +1173,7 @@ export function createWorld(root) {
       p.state = job ? 'toWork' : 'wandering';
       p.route = null;
       p.routeIndex = 0;
+      p.routeUsesRoad = false;
       p.cargo.visible = false;
       p.cart.visible = false;
       if (job) {
@@ -1288,6 +1291,7 @@ export function createWorld(root) {
       } else if (p.wait <= 0 && !p.working) {
         p.route = null;
         p.routeIndex = 0;
+        p.routeUsesRoad = false;
         p.target.set((Math.random() - 0.5) * 18, 0, (Math.random() - 0.5) * 18);
         p.wait = 3.5 + Math.random() * 8;
       }
@@ -1298,7 +1302,10 @@ export function createWorld(root) {
       const moving = distance > 0.55;
 
       if (moving) {
-        const step = Math.min(distance, dt * p.speed * (p.working ? 1.3 : 1));
+        const transportFactor = p.cart.visible
+          ? (p.routeUsesRoad ? 1.15 : 0.62)
+          : (p.routeUsesRoad ? 1.12 : 1);
+        const step = Math.min(distance, dt * p.speed * (p.working ? 1.3 : 1) * transportFactor);
         person.position.x += (dx / distance) * step;
         person.position.z += (dz / distance) * step;
         person.rotation.y = Math.atan2(dx, dz);
