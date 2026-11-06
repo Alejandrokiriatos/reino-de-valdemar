@@ -376,6 +376,36 @@ function makeDeer(scene, index, centerX, centerZ, palette) {
   return deer;
 }
 
+
+function makeFishery(group, wood, dark, stone, roof, cloth) {
+  addBox(group, 0, 0.2, 0, 7.2, 0.4, 6.2, stone);
+  addBox(group, 0, 1.7, -0.7, 5.5, 2.65, 4.5, wood);
+  for (const x of [-2.5, 2.5]) addBox(group, x, 1.75, 1.55, 0.18, 3, 0.18, dark);
+  addBox(group, 0, 0.62, 1.65, 1.15, 1.4, 0.15, dark);
+  const roofL = addBox(group, -1.35, 3.25, -0.7, 3, 0.25, 5.1, roof);
+  roofL.rotation.z = -0.55;
+  const roofR = addBox(group, 1.35, 3.25, -0.7, 3, 0.25, 5.1, roof);
+  roofR.rotation.z = 0.55;
+  addBox(group, 0, 4.05, -0.7, 0.22, 0.2, 5.25, dark);
+  // A short timber jetty reaches toward the river.
+  addBox(group, 0, 0.12, 4.4, 3.6, 0.24, 5.2, wood);
+  for (const x of [-1.55, 1.55]) {
+    for (const z of [2.3, 4.4, 6.4]) addBox(group, x, -0.3, z, 0.18, 1.05, 0.18, dark);
+    addBox(group, x, 0.38, 4.4, 0.16, 0.16, 5.1, dark);
+  }
+  for (const z of [3.1, 5.2]) addBox(group, 0, 0.27, z, 3.1, 0.1, 0.14, dark);
+  const net = new THREE.Mesh(new THREE.TorusGeometry(0.7, 0.045, 5, 14), cloth);
+  net.position.set(2.15, 1.25, 2.4);
+  net.rotation.y = Math.PI / 2;
+  group.add(net);
+  for (const x of [-1.2, -0.2, 0.8]) {
+    const fishBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.34, 0.68, 8), dark);
+    fishBarrel.position.set(x, 0.62, 2.1);
+    fishBarrel.castShadow = true;
+    group.add(fishBarrel);
+  }
+}
+
 function makeBuildingMesh(type, palette) {
   const group = new THREE.Group();
   const wood = palette.wood;
@@ -390,6 +420,7 @@ function makeBuildingMesh(type, palette) {
   else if (type === 'well') makeWell(group, stone, wood, roof, dark);
   else if (type === 'storehouse') makeStorehouse(group, wood, dark, stone, roof, palette.plaster);
   else if (type === 'hunter') makeHunterCabin(group, wood, dark, stone, roof, palette.plaster);
+  else if (type === 'fishery') makeFishery(group, wood, dark, stone, roof, palette.cloth);
   else makeTower(group, stone, roof, dark);
   return group;
 }
@@ -903,6 +934,8 @@ export function createWorld(root) {
       : kind === 'tower' ? [6, 0.16, 6]
       : kind === 'market' ? [7, 0.16, 5.8]
       : kind === 'well' ? [3.2, 0.16, 3.2]
+      : kind === 'fishery' ? [7.2, 0.16, 8]
+      : kind === 'storehouse' ? [7.4, 0.16, 6.4]
       : [6, 0.16, 5.5];
     if (ghost.userData.kind !== kind) {
       ghost.geometry.dispose();
