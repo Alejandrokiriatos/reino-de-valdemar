@@ -21,6 +21,7 @@ let paused = false;
 let menuOpen = true;
 let gameSpeed = 1;
 let dayClock = 0;
+let worldClock = 0;
 let lastFrame = 0;
 let toastTimer = 0;
 let dragging = false;
@@ -113,6 +114,7 @@ function startSession(nextState, message) {
   selectedId = null;
   buildMode = null;
   dayClock = 0;
+  worldClock = 0;
   gameActive = true;
   menuOpen = false;
   $('#mainmenu').classList.add('hidden');
@@ -423,14 +425,17 @@ function frame(time) {
   requestAnimationFrame(frame);
   const dt = Math.min((time - lastFrame) / 1000 || 0, 0.05);
   lastFrame = time;
-  if (gameActive && !paused && !menuOpen) {
-    dayClock += dt * gameSpeed;
+  const sessionRunning = gameActive && !paused && !menuOpen;
+  const scaledDt = sessionRunning ? dt * gameSpeed : 0;
+  if (sessionRunning) {
+    dayClock += scaledDt;
     if (dayClock >= 42) {
       dayClock -= 42;
       advanceSimulationDay();
     }
+    worldClock += scaledDt;
   }
-  world.update(dt, time / 1000, dayClock / 42, seasonForDay(state.day));
+  world.update(scaledDt, worldClock, dayClock / 42, seasonForDay(state.day));
   world.camera.lookAt(target);
   world.render();
 }
