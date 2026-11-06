@@ -87,12 +87,12 @@ export function weatherForDay(day, season = seasonForDay(day)) {
 
 export function weatherDescription(weather) {
   return ({
-    Despejado: 'cielos despejados',
-    Nublado: 'cielos cubiertos',
-    Lluvia: 'lluvia',
-    Tormenta: 'una tormenta',
-    Sequía: 'sequía',
-    Nieve: 'nieve'
+    Despejado: 'se despeja el cielo',
+    Nublado: 'se cubre el cielo',
+    Lluvia: 'comienza a llover',
+    Tormenta: 'se desata una tormenta',
+    Sequía: 'se instala la sequía',
+    Nieve: 'comienza a nevar'
   })[weather] || 'tiempo variable';
 }
 
@@ -257,7 +257,7 @@ export function advanceDay(state) {
   }
 
   if (weather !== previousWeather) {
-    state.notices.unshift('El tiempo cambia: llegan ' + weatherDescription(weather) + '.');
+    state.notices.unshift('El tiempo cambia: ' + weatherDescription(weather) + '.');
   }
   if (state.day % 12 === 0) {
     const nextSeason = seasonForDay(state.day + 1);
