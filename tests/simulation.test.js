@@ -172,3 +172,14 @@ test('winter snowfall increases heating demand beyond a cloudy winter day', () =
   assert.ok(snowReport.woodConsumed > cloudReport.woodConsumed);
   assert.equal(snowy.weather, snowReport.weather);
 });
+
+
+test('spring storms trigger a stronger weather event and a settlement warning', () => {
+  const state = newGame();
+  state.day = 3;
+  const result = advanceDay(state);
+  assert.equal(result.weather, 'Tormenta');
+  assert.equal(state.weather, 'Tormenta');
+  assert.equal(result.previousWeather, 'Despejado');
+  assert.ok(state.notices.some((notice) => notice.includes('tormenta')));
+});
