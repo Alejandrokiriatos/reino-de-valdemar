@@ -409,6 +409,120 @@ function makeFishery(group, wood, dark, stone, roof, cloth) {
   }
 }
 
+
+function makeStable(group, wood, dark, stone, roof, plaster) {
+  addBox(group, 0, 0.22, -0.8, 8.5, 0.44, 7.2, stone);
+  addBox(group, 0, 1.85, -1.15, 6.8, 3.15, 5.35, wood);
+  addBox(group, 0, 1.35, 1.57, 6.45, 2.05, 0.16, plaster);
+  for (const x of [-3.15, 3.15]) {
+    addBox(group, x, 1.75, 1.72, 0.22, 3.25, 0.22, dark);
+    addBox(group, x, 0.47, 1.8, 0.22, 0.8, 0.22, dark);
+  }
+  addBox(group, 0, 0.95, 1.72, 1.55, 1.85, 0.2, dark);
+  addBox(group, 0, 1.92, 1.83, 0.12, 0.12, 0.08, material(0xb28d59));
+  const roofL = addBox(group, -1.72, 3.55, -1.15, 3.75, 0.28, 6.1, roof);
+  roofL.rotation.z = -0.5;
+  const roofR = addBox(group, 1.72, 3.55, -1.15, 3.75, 0.28, 6.1, roof);
+  roofR.rotation.z = 0.5;
+  addBox(group, 0, 4.42, -1.15, 0.24, 0.2, 6.3, dark);
+  // Loft opening and hay storage.
+  addBox(group, 0, 2.95, 1.68, 1.25, 0.82, 0.08, dark);
+  addBox(group, 0, 2.95, 1.76, 0.98, 0.58, 0.06, wood);
+  for (const x of [-2.3, 2.3]) {
+    addBox(group, x, 0.65, -2.0, 0.82, 0.48, 0.75, material(0xb79a5e));
+    for (let i = 0; i < 3; i++) {
+      const hay = new THREE.Mesh(new THREE.ConeGeometry(0.27, 0.36, 5), material(0xc3a96d));
+      hay.position.set(x + (i - 1) * 0.16, 0.98, -2 + (i % 2) * 0.14);
+      hay.castShadow = true;
+      group.add(hay);
+    }
+  }
+  // Fenced exercise yard attached to the barn.
+  for (const x of [-4, -1.35, 1.35, 4]) {
+    for (const z of [3.1, 8.9]) addBox(group, x, 0.85, z, 0.17, 1.7, 0.17, dark);
+  }
+  for (const z of [3.1, 8.9]) {
+    for (const y of [0.55, 1.18]) addBox(group, 0, y, z, 8.1, 0.13, 0.14, wood);
+  }
+  for (const x of [-4, 4]) {
+    for (const y of [0.55, 1.18]) addBox(group, x, y, 6, 0.14, 0.13, 5.8, wood);
+  }
+  addBox(group, 1.95, 0.42, 4.05, 2.4, 0.48, 0.62, dark);
+  addBox(group, 1.95, 0.68, 4.05, 2.25, 0.12, 0.5, material(0x817b59));
+}
+
+function makeCow(scene, index, x, z, palette) {
+  const cow = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.62, 10, 8), palette.cowCoat);
+  body.scale.set(0.86, 0.78, 1.35);
+  body.position.y = 1.02;
+  body.castShadow = true;
+  cow.add(body);
+  for (const side of [-1, 1]) {
+    const patch = new THREE.Mesh(new THREE.SphereGeometry(0.28, 7, 6), palette.cowPatch);
+    patch.position.set(side * 0.43, 1.18, (index % 2 ? -0.2 : 0.28));
+    patch.scale.set(0.18, 0.84, 0.94);
+    cow.add(patch);
+  }
+  const chest = new THREE.Mesh(new THREE.SphereGeometry(0.31, 8, 6), palette.cowCoat);
+  chest.position.set(0, 1.03, 0.62);
+  chest.scale.set(0.86, 1.14, 0.8);
+  cow.add(chest);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.29, 9, 7), palette.cowCoat);
+  head.position.set(0, 1.48, 0.94);
+  head.scale.set(0.78, 0.9, 1.08);
+  head.castShadow = true;
+  cow.add(head);
+  const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.19, 8, 6), palette.cowMuzzle);
+  muzzle.position.set(0, 1.32, 1.18);
+  muzzle.scale.set(1, 0.7, 0.75);
+  cow.add(muzzle);
+  for (const side of [-1, 1]) {
+    const horn = new THREE.Mesh(new THREE.ConeGeometry(0.075, 0.3, 6), palette.cowHorn);
+    horn.position.set(side * 0.19, 1.78, 0.83);
+    horn.rotation.z = side * -0.42;
+    cow.add(horn);
+    const ear = new THREE.Mesh(new THREE.SphereGeometry(0.12, 7, 5), palette.cowCoat);
+    ear.position.set(side * 0.32, 1.55, 0.8);
+    ear.scale.set(1.5, 0.45, 0.75);
+    cow.add(ear);
+  }
+  const legs = [];
+  for (const lx of [-0.3, 0.3]) {
+    for (const lz of [-0.58, 0.52]) {
+      const leg = new THREE.Group();
+      leg.position.set(lx, 0.72, lz);
+      const shin = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.065, 0.66, 6), palette.cowCoat);
+      shin.position.y = -0.32;
+      shin.castShadow = true;
+      leg.add(shin);
+      const hoof = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.13, 0.17), palette.cowHorn);
+      hoof.position.set(0, -0.67, 0.02);
+      leg.add(hoof);
+      cow.add(leg);
+      legs.push(leg);
+    }
+  }
+  const tail = new THREE.Group();
+  tail.position.set(0, 1.15, -0.74);
+  const tailStem = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.05, 0.72, 6), palette.cowCoat);
+  tailStem.position.set(0, -0.27, -0.08);
+  tailStem.rotation.x = -0.24;
+  tail.add(tailStem);
+  const tuft = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.28, 6), palette.cowHorn);
+  tuft.position.set(0, -0.62, -0.1);
+  tail.add(tuft);
+  cow.add(tail);
+  cow.position.set(x, terrainHeight(x, z), z);
+  cow.userData = {
+    index, phase: Math.random() * 6, wait: Math.random() * 4,
+    centerX: x, centerZ: z, target: new THREE.Vector3(x, 0, z),
+    speed: 0.45 + Math.random() * 0.16, legs, tail
+  };
+  scene.add(cow);
+  return cow;
+}
+
 function makeBuildingMesh(type, palette) {
   const group = new THREE.Group();
   const wood = palette.wood;
@@ -424,6 +538,7 @@ function makeBuildingMesh(type, palette) {
   else if (type === 'storehouse') makeStorehouse(group, wood, dark, stone, roof, palette.plaster);
   else if (type === 'hunter') makeHunterCabin(group, wood, dark, stone, roof, palette.plaster);
   else if (type === 'fishery') makeFishery(group, wood, dark, stone, roof, palette.cloth);
+  else if (type === 'stable') makeStable(group, wood, dark, stone, roof, palette.plaster);
   else makeTower(group, stone, roof, dark);
   return group;
 }
@@ -542,7 +657,8 @@ export function createWorld(root) {
     crop: material(0x637b3e), cropGold: material(0xb5a057), soil: material(0x715d3e),
     cloth: material(0x9d794a), skin: material(0xd1a17a),
     clothes: [material(0x8a4939), material(0x455d70), material(0x9a8048), material(0x68734a), material(0x784e6b), material(0x8a8b85)],
-    deerCoat: material(0x876344)
+    deerCoat: material(0x876344), cowCoat: material(0xe3dfce), cowPatch: material(0x443f38),
+    cowMuzzle: material(0xc49b91), cowHorn: material(0x514638)
   };
   scene.add(new THREE.HemisphereLight(0xe5ecd9, 0x4a503d, 1.65));
   const sun = new THREE.DirectionalLight(0xffe0b2, 2.55);
@@ -687,8 +803,9 @@ export function createWorld(root) {
   const buildingRoads = new Map();
   const villagers = [];
   const deer = [];
+  const livestock = [];
   const stockyard = new THREE.Group();
-  const deliveryCounts = { food: 0, wood: 0, stone: 0, gold: 0 };
+  const deliveryCounts = { food: 0, wood: 0, stone: 0, gold: 0, manure: 0 };
   scene.add(stockyard);
   const ghost = new THREE.Mesh(
     new THREE.BoxGeometry(8, 0.16, 7),
@@ -926,6 +1043,10 @@ export function createWorld(root) {
     } else if (kind === 'gold') {
       item = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, 0.07, 12), material(0xc6a24f, 0.55, { metalness: 0.4 }));
       item.position.set(x, 0.3 + (row % 2) * 0.12, z);
+    } else if (kind === 'manure') {
+      item = new THREE.Mesh(new THREE.SphereGeometry(0.25, 8, 6), material(0x62482f));
+      item.scale.set(1.25, 0.62, 1);
+      item.position.set(x, 0.27, z);
     } else {
       item = new THREE.Mesh(new THREE.SphereGeometry(0.28, 8, 6), material(0xb79b66));
       item.scale.set(1.15, 0.8, 0.95);
@@ -936,6 +1057,26 @@ export function createWorld(root) {
     item.userData.stockItem = true;
     item.userData.ownsMaterial = kind === 'food' || kind === 'gold';
     stockyard.add(item);
+  }
+
+  function setLivestock(count) {
+    while (livestock.length) {
+      const animal = livestock.pop();
+      scene.remove(animal);
+      animal.traverse((child) => child.geometry?.dispose?.());
+    }
+    const stableGroup = buildings.find((group) => group.userData.buildingData?.kind === 'stable');
+    if (!stableGroup) return;
+    const stable = stableGroup.userData.buildingData;
+    const amount = Math.max(0, Math.min(12, Math.floor(Number(count) || 0)));
+    const angle = stable.rotation || 0;
+    for (let i = 0; i < amount; i++) {
+      const localX = (i % 3 - 1) * 2.2;
+      const localZ = 5.1 + Math.floor(i / 3) * 1.15;
+      const x = stable.x + localX * Math.cos(angle) + localZ * Math.sin(angle);
+      const z = stable.z - localX * Math.sin(angle) + localZ * Math.cos(angle);
+      livestock.push(makeCow(scene, i, x, z, palette));
+    }
   }
 
   function setDeliveryCounts(counts = {}) {
@@ -1222,7 +1363,8 @@ export function createWorld(root) {
         p.cargoType = job.kind === 'farm' ? 'food'
           : job.kind === 'sawmill' ? 'wood'
           : job.kind === 'quarry' ? 'stone'
-          : job.kind === 'market' ? 'gold' : 'food';
+          : job.kind === 'market' ? 'gold'
+          : job.kind === 'stable' ? 'manure' : 'food';
         p.storageTarget = new THREE.Vector3(depot.x + 5.1, 0, depot.z + 2.5);
         if (job.kind === 'fishery') {
           const riverX = 18 + Math.sin(job.z * 0.042) * 3.8;
@@ -1325,6 +1467,34 @@ export function createWorld(root) {
       (0.59 + night * 0.1) + (snowy ? 0.12 : rainy ? 0.035 : 0) + lightning * 0.28
     );
     scene.fog.color.copy(scene.background);
+    livestock.forEach((animal) => {
+      const p = animal.userData;
+      p.phase += dt * p.speed;
+      p.wait -= dt;
+      if (p.wait <= 0) {
+        p.target.set(
+          p.centerX + (Math.random() - 0.5) * 4.8,
+          0,
+          p.centerZ + (Math.random() - 0.5) * 3.8
+        );
+        p.wait = 3.5 + Math.random() * 5.5;
+      }
+      const dx = p.target.x - animal.position.x;
+      const dz = p.target.z - animal.position.z;
+      const distance = Math.hypot(dx, dz);
+      const moving = distance > 0.4;
+      if (moving) {
+        const step = Math.min(distance, dt * p.speed * (rainy || snowy ? 0.78 : 1));
+        animal.position.x += (dx / distance) * step;
+        animal.position.z += (dz / distance) * step;
+        animal.rotation.y = Math.atan2(dx, dz);
+      }
+      animal.position.y = terrainHeight(animal.position.x, animal.position.z);
+      const gait = moving ? Math.sin(p.phase * 7) * 0.36 : Math.sin(p.phase * 1.4) * 0.035;
+      p.legs.forEach((leg, index) => { leg.rotation.x = gait * (index % 2 ? -1 : 1); });
+      p.tail.rotation.x = 0.12 + Math.sin(elapsed * 1.5 + p.index) * 0.2;
+    });
+
     const visibleWildlife = Math.round((deer.length * THREE.MathUtils.clamp(wildlife, 0, 100)) / 100);
     deer.forEach((animal, animalIndex) => {
       animal.visible = animalIndex < visibleWildlife;
@@ -1447,6 +1617,7 @@ export function createWorld(root) {
       : kind === 'well' ? [3.2, 0.16, 3.2]
       : kind === 'fishery' ? [7.2, 0.16, 8]
       : kind === 'storehouse' ? [7.4, 0.16, 6.4]
+      : kind === 'stable' ? [8.8, 0.16, 10.6]
       : [6, 0.16, 5.5];
     if (ghost.userData.kind !== kind) {
       ghost.geometry.dispose();
@@ -1471,7 +1642,7 @@ export function createWorld(root) {
 
   return {
     scene, camera, renderer, ground, buildings, villagers, addBuilding, removeBuilding,
-    clearBuildings, setPopulation, setJobs, update, showGhost, hideGhost,
+    clearBuildings, setPopulation, setJobs, setLivestock, update, showGhost, hideGhost,
     getDeliveryCounts: () => ({ ...deliveryCounts }),
     setDeliveryCounts,
     setQuality, render: () => renderer.render(scene, camera), addRoad: addRoadPath
